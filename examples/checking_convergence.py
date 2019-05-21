@@ -4,13 +4,19 @@
 # <markdowncell>
 
 # # Checking convergence in DisMod-MR
-# 
+#
 # This notebook provides some examples of running multiple chains and checking convergence in DisMod-MR.  Checking convergence is an important part of MCMC estimation.
 
 # <codecell>
 
-import numpy as np, pandas as pd, dismod_mr, pymc as pm, matplotlib.pyplot as plt, seaborn as sns
-%matplotlib inline
+import numpy as np
+import pandas as pd
+import dismod_mr
+import pymc as pm
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pdb
+# %matplotlib inline
 
 # <codecell>
 
@@ -56,10 +62,10 @@ def new_model(data):
     dm.set_level_value('p', age_before=0, age_after=100, value=0)
     dm.set_heterogeneity('p', value='Slightly')
     dm.set_effect_prior('p', cov='x_sex', value=dict(dist='Constant', mu=0))
-    
-    # copy data into model 
+
+    # copy data into model
     dm.input_data = data.copy()
-    
+
     return dm
 
 # <markdowncell>
@@ -127,7 +133,7 @@ dismod_mr.plot.plot_acorr(dm1)
 # <markdowncell>
 
 # # Running multiple chains
-# 
+#
 # It is simple to run multiple chains sequentially in DisMod-MR, although I worry that this gives a false sense of security about the convergence.
 
 # <codecell>
@@ -155,5 +161,3 @@ R_hat = pm.gelman_rubin(dm.mcmc)
 R_hat['gamma_p_100']
 
 # <codecell>
-
-
