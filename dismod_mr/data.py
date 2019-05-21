@@ -22,7 +22,8 @@
 import pandas as pd
 import networkx as nx
 import pymc as mc
-import pylab as pl
+import numpy as np
+# import pylab as pl
 try:
     import simplejson as json
 except ImportError:
@@ -62,13 +63,13 @@ def describe_vars(d):
         df.ix[k, 'type'] = type(n).__name__
 
         if hasattr(n, 'value'):
-            rav = pl.ravel(n.value)
+            rav = np.ravel(n.value)
             if len(rav) == 1:
                 df.ix[k, 'value'] = n.value
             elif len(rav) > 1:
                 df.ix[k, 'value'] = '%.1f, ...' % rav[0]
 
-        df.ix[k, 'logp'] = getattr(n, 'logp', pl.nan)
+        df.ix[k, 'logp'] = getattr(n, 'logp', np.nan)
 
     return df.sort('logp')
 
@@ -85,9 +86,9 @@ def check_convergence(vars):
         tr = s.trace()
         if len(tr.shape) == 1:
             tr = tr.reshape((len(tr), 1))
-        for d in range(len(pl.atleast_1d(s.value))):
+        for d in range(len(np.atleast_1d(s.value))):
             for k in range(50,100):
-                acorr = pl.dot(tr[:-k,d]-tr[:k,d].mean(), tr[k:,d]-tr[k:,d].mean()) / pl.dot(tr[k:,d]-tr[k:,d].mean(), tr[k:,d]-tr[k:,d].mean())
+                acorr = np.dot(tr[:-k,d]-tr[:k,d].mean(), tr[k:,d]-tr[k:,d].mean()) / np.dot(tr[k:,d]-tr[k:,d].mean(), tr[k:,d]-tr[k:,d].mean())
                 if abs(acorr) > .5:
                     print('potential non-convergence', s, acorr)
                     return False
@@ -199,7 +200,7 @@ class ModelData:
         df = self.get_data(data_type)
 
         for n in nx.dfs_postorder_nodes(G, 'all'):
-            G.node[n]['cnt'] = len(df[df['area']==n].index) + pl.sum([G.node[c]['cnt'] for c in G.successors(n)])
+            G.node[n]['cnt'] = len(df[df['area']==n].index) + np.sum([G.node[c]['cnt'] for c in G.successors(n)])
             G.node[n]['depth'] = nx.shortest_path_length(G, 'all', n)
         
         for n in nx.dfs_preorder_nodes(G, 'all'):
@@ -269,7 +270,7 @@ class ModelData:
 
             plt.axis(xmin=-5, xmax=105)
 
-    def keep(self, areas=['all'], sexes=['male', 'female', 'total'], start_year=-pl.inf, end_year=pl.inf):
+    def keep(self, areas=['all'], sexes=['male', 'female', 'total'], start_year=-np.inf, end_year=np.inf):
         """ Modify model to feature only desired area/sex/year(s)
 
         :Parameters:
@@ -279,6 +280,7 @@ class ModelData:
           - `end_year` : int, optional
 
         """
+        # create the hierarchy by first removing the 'all' node, and then adding it back in???
         if 'all' not in areas:
             self.hierarchy.remove_node('all')
             for area in areas:
@@ -589,7 +591,7 @@ class ModelData:
         # ensure that certain columns are float
         #for field in 'value standard_error upper_ci lower_ci effective_sample_size'.split():
         #    #d.input_data.dtypes[field] = float  # TODO: figure out classy way like this, that works
-        #    d.input_data[field] = pl.array(d.input_data[field], dtype=float)
+        #    d.input_data[field] = np.array(d.input_data[field], dtype=float)
 
         
         d.output_template = pd.DataFrame.from_csv(path + '/output_template.csv')
