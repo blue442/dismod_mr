@@ -200,6 +200,7 @@ def mean_covariate_model(name, mu, input_data, parameters, model, root_area, roo
                         alpha_potentials.append(alpha_potential)
 
     # make X and beta
+    pdb.set_trace()
     X = input_data.loc[:, [i for i in input_data.columns.tolist() if i.startswith('x_')]]
     # X = input_data.select(lambda col: col.startswith('x_'), axis=1)
 
@@ -294,6 +295,7 @@ def dispersion_covariate_model(name, input_data, delta_lb, delta_ub):
     upper = np.log(delta_ub)
     eta = mc.Uniform('eta_%s' % name, lower=lower, upper=upper, value=.5*(lower+upper))
 
+    pdb.set_trace()
     Z = input_data.loc[:, [i for i in input_data.columns.tolist() if i.startswith('z_')]]
     # Z = input_data.select(lambda col: col.startswith('z_'), axis=1)
     Z = Z.dropna(axis=1, how='all')

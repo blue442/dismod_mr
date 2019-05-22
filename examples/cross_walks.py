@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 import dismod_mr
 
-%matplotlib inline
+# %matplotlib inline
 
 # <codecell>
 
@@ -48,6 +48,7 @@ data['self_report_value'] = data.true_value * np.exp(data.beta_self_report)
 # let's see the difference between the (simulated) true value and self-report value
 
 sns.lmplot('true_value', 'self_report_value', data, aspect=1.5)
+
 
 # <codecell>
 
@@ -119,6 +120,7 @@ dismod_mr.plot.data_bars(data[data.self_report == 1],
                          color=dismod_mr.plot.colors[1], label='Self-report')
 plt.legend(loc='upper left')
 
+
 # <markdowncell>
 
 # If we had access to the true value, we would just fit that, and get nice results.
@@ -131,6 +133,7 @@ dm = new_model(data)
 dm.setup_model('p', rate_model='neg_binom')
 %time dm.fit(how='mcmc', iter=2000, burn=1000, thin=1)
 dm.plot()
+
 
 # <markdowncell>
 
@@ -146,6 +149,7 @@ log_diff = np.log(data.true_value[data.measured_both]) - \
     np.log(data.self_report_value[data.measured_both])
 sns.distplot(log_diff, rug=True)
 
+
 # <codecell>
 
 # use exp of mean of log(difference) to cross-walk self-reported data before building DisMod-MR model
@@ -160,6 +164,7 @@ dm = new_model(data)
 dm.setup_model('p', rate_model='neg_binom')
 %time dm.fit(how='mcmc', iter=2000, burn=1000, thin=1)
 dm.plot()
+
 
 # <markdowncell>
 
@@ -208,6 +213,7 @@ plt.legend(loc='upper left')
 # <codecell>
 
 sns.distplot(dm.vars['p']['beta'][0].trace())
+plt.show()
 
 # <markdowncell>
 
