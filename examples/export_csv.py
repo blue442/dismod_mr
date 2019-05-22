@@ -4,13 +4,13 @@
 # <markdowncell>
 
 # # Getting estimates out of DisMod-MR
-# 
+#
 # The goal of this document is to demonstrate how to export age-specific prevalence estimates from DisMod-MR in a comma-separated value (CSV) format, for use in subsequent analysis.
-# 
+#
 # It uses data from the replication dataset for regional estimates of HCV prevalence, as published in Mohd Hanafiah K, Groeger J, Flaxman AD, Wiersma ST. Global epidemiology of hepatitis C virus infection: New estimates of age-specific antibody to HCV seroprevalence. Hepatology. 2013 Apr;57(4):1333-42. doi: 10.1002/hep.26141. Epub 2013 Feb 4.  http://www.ncbi.nlm.nih.gov/pubmed/23172780
-# 
+#
 # The dataset is available from: http://ghdx.healthmetricsandevaluation.org/record/hepatitis-c-prevalence-1990-and-2005-all-gbd-regions
-# 
+#
 #     wget http://ghdx.healthmetricsandevaluation.org/sites/ghdx/files/record-attached-files/IHME_GBD_HEP_C_RESEARCH_ARCHIVE_Y2013M04D12.ZIP
 #     unzip IHME_GBD_HEP_C_RESEARCH_ARCHIVE_Y2013M04D12.ZIP
 
@@ -21,8 +21,11 @@
 
 # <codecell>
 
-# This Python code will export predictions 
+# This Python code will export predictions
 # for the following region/sex/year:
+import pymc as mc
+import pandas as pd
+import dismod_mr
 predict_region = 'asia_central'
 predict_sex = 'male'
 predict_year = 2005
@@ -30,7 +33,6 @@ predict_year = 2005
 # <codecell>
 
 # import dismod code
-import dismod_mr
 
 # <markdowncell>
 
@@ -51,16 +53,17 @@ else:
 # <codecell>
 
 # Fit model using the data subset (faster, but no borrowing strength)
-dm.vars += dismod_mr.model.process.age_specific_rate(dm, 'p', predict_region, predict_sex, predict_year)
+dm.vars += dismod_mr.model.process.age_specific_rate(dm,
+                                                     'p', predict_region, predict_sex, predict_year)
 %time dismod_mr.fit.asr(dm, 'p', iter=2000, burn=1000, thin=1)
 
 # <codecell>
 
 # Make posterior predictions
 pred = dismod_mr.model.covariates.predict_for(
-            dm, dm.parameters['p'],
-            predict_region, predict_sex, predict_year,
-            predict_region, predict_sex, predict_year, True, dm.vars['p'], 0, 1)
+    dm, dm.parameters['p'],
+    predict_region, predict_sex, predict_year,
+    predict_region, predict_sex, predict_year, True, dm.vars['p'], 0, 1)
 
 # <markdowncell>
 
@@ -68,7 +71,6 @@ pred = dismod_mr.model.covariates.predict_for(
 
 # <codecell>
 
-import pandas as pd
 
 # <codecell>
 
@@ -79,11 +81,11 @@ import pandas as pd
 # e.g. column 10 is prevalence at age 10
 
 pd.DataFrame(pred).to_csv(
-    model_path + '%s-%s-%s.csv'%(predict_region, predict_sex, predict_year))
+    model_path + '%s-%s-%s.csv' % (predict_region, predict_sex, predict_year))
 
 # <codecell>
 
-!ls -hal hcv_replication/asia_central-male-2005.csv
+!ls - hal hcv_replication/asia_central-male-2005.csv
 
 # <markdowncell>
 
@@ -109,7 +111,7 @@ weights = [1, 8, 8, 9, 9, 10, 10, 10, 10, 10,
 age_std = np.dot(pred, weights) / np.sum(weights)
 hist(age_std, color='#cccccc', normed=True)
 xlabel('Age-standardized Prevalence')
-ylabel('Posterior Probability');
+ylabel('Posterior Probability')
 
 # <markdowncell>
 
@@ -117,7 +119,6 @@ ylabel('Posterior Probability');
 
 # <codecell>
 
-import pymc as mc
 
 print 'age_std prev mean:', age_std.mean()
 print 'age_std prev 95% UI:', mc.utils.hpd(age_std, .05)
@@ -135,8 +136,8 @@ group_cutpoints = [0, 1,  5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70,
 results = []
 for a0, a1 in zip(group_cutpoints[:-1], group_cutpoints[1:]):
     age_grp = np.dot(pred[:, a0:a1], weights[a0:a1]) / np.sum(weights[a0:a1])
-    results.append(dict(a0=a0,a1=a1,mu=age_grp.mean(),std=age_grp.std()))
-    
+    results.append(dict(a0=a0, a1=a1, mu=age_grp.mean(), std=age_grp.std()))
+
 results = pd.DataFrame(results)
 print np.round(results.head(), 2)
 
@@ -153,5 +154,3 @@ axis(ymin=0, xmax=100)
 !date
 
 # <codecell>
-
-

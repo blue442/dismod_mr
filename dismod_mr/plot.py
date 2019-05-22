@@ -1,9 +1,9 @@
 
 
 # Copyright 2008-2017 University of Washington
-# 
+#
 # This file is part of DisMod-MR.
-# 
+#
 # DisMod-MR is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -13,18 +13,20 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU Affero General Public License
 # along with DisMod-MR.  If not, see <http://www.gnu.org/licenses/>.
 
 """ Module for DisMod-MR graphics"""
 
-import numpy as np, matplotlib.pyplot as plt
+import numpy as np
+import matplotlib.pyplot as plt
 import pymc as mc
 import pandas
 import networkx as nx
 
 colors = ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f0', '#ffff33']
+
 
 def asr(model, t):
     """ plot age-standardized rate fit and model data
@@ -37,7 +39,7 @@ def asr(model, t):
     vars = model.vars
     ages = np.array(model.parameters['ages'])
 
-    data_bars(model.get_data(t), color='grey', label='%s data'%t)
+    data_bars(model.get_data(t), color='grey', label='%s data' % t)
 
     if 'knots' in vars[t]:
         knots = vars[t]['knots']
@@ -46,13 +48,14 @@ def asr(model, t):
 
     plt.plot(ages, vars[t]['mu_age'].stats()['mean'], 'k-', linewidth=2, label='Posterior')
 
-    plt.plot(ages[knots], vars[t]['mu_age'].stats()['95% HPD interval'][knots,:][:,0], 'k--', label='95% HPD')
-    plt.plot(ages[knots], vars[t]['mu_age'].stats()['95% HPD interval'][knots,:][:,1], 'k--')
+    plt.plot(ages[knots], vars[t]['mu_age'].stats()['95% HPD interval']
+             [knots, :][:, 0], 'k--', label='95% HPD')
+    plt.plot(ages[knots], vars[t]['mu_age'].stats()['95% HPD interval'][knots, :][:, 1], 'k--')
 
 
 def all_plots_for(model, t, ylab, emp_priors):
     """ plot results of a fit
-    
+
     :Parameters:
       - `model` : data.ModelData
       - `data_types` : list of str, data types listed as strings, default = ['i', 'r', 'f', 'p', 'rr', 'pf']
@@ -60,15 +63,16 @@ def all_plots_for(model, t, ylab, emp_priors):
       - `emp_priors` : dictionary
 
     """
-    plot_fit(model, data_types=[t], ylab=ylab, plot_config=(1,1), fig_size=(8,8))
+    plot_fit(model, data_types=[t], ylab=ylab, plot_config=(1, 1), fig_size=(8, 8))
     plot_one_ppc(model, t)
     plot_one_effects(model, t)
     plot_acorr(model.vars[t])
     plot_hists(model.vars)
 
+
 def data_bars(df, style='book', color='black', label=None, max=500):
     """ Plot data bars
-    
+
     :Parameters:
       - `df` : pandas.DataFrame with columns age_start, age_end, value
       - `style` : str, either book or talk
@@ -79,7 +83,7 @@ def data_bars(df, style='book', color='black', label=None, max=500):
     .. note::
       - The 'talk' style uses fewer colors, thicker line widths, and larger marker sizes.
       - If there are more than `max` data points, a random sample of `max` data points will be selected to show.
-    
+
     """
     data_bars = list(zip(df['age_start'], df['age_end'], df['value']))
 
@@ -95,17 +99,18 @@ def data_bars(df, style='book', color='black', label=None, max=500):
         x += [a_0i, a_1i, np.nan]
         y += [p_i, p_i, np.nan]
 
-    if style=='book':
+    if style == 'book':
         plt.plot(x, y, 's-', mew=1, mec='w', ms=4, color=color, label=label)
-    elif style=='talk':
+    elif style == 'talk':
         plt.plot(x, y, 's-', mew=1, mec='w', ms=0,
-                alpha=1.0, color=colors[2], linewidth=15, label=label)
+                 alpha=1.0, color=colors[2], linewidth=15, label=label)
     else:
         raise Exception('Unrecognized style: %s' % style)
 
+
 def my_stats(node):
     """ Convenience function to generate a stats dict even if the pymc.Node has no trace
-    
+
     :Parameters:
       - `node` : pymc.PyMCObjects.Deterministic
 
@@ -119,10 +124,11 @@ def my_stats(node):
         return {'mean': node.value,
                 '95% HPD interval': np.vstack((node.value, node.value)).T}
 
-def plot_fit(model, data_types=['i', 'r', 'f', 'p', 'rr', 'pf'], ylab=['PY','PY','PY','Percent (%)','','PY'], plot_config=(2,3),
-             with_data=True, with_ui=True, emp_priors={}, posteriors={}, fig_size=(10,6)):
+
+def plot_fit(model, data_types=['i', 'r', 'f', 'p', 'rr', 'pf'], ylab=['PY', 'PY', 'PY', 'Percent (%)', '', 'PY'], plot_config=(2, 3),
+             with_data=True, with_ui=True, emp_priors={}, posteriors={}, fig_size=(10, 6)):
     """ plot results of a fit
-    
+
     :Parameters:
       - `model` : data.ModelData
       - `data_types` : list of str, data types listed as strings, default = ['i', 'r', 'f', 'p', 'rr', 'pf']
@@ -131,17 +137,17 @@ def plot_fit(model, data_types=['i', 'r', 'f', 'p', 'rr', 'pf'], ylab=['PY','PY'
       - `with_data` : boolean, plot with data type `t`, default = True
       - `with_ui` : boolean, plot with uncertainty interval, default = True
       - `emp_priors` : dictionary
-      - `posteriors` : 
+      - `posteriors` :
       - `fig_size` : tuple, size of figure, default = (8,6)
-    
+
     .. note::
       - `data_types` and `ylab` must be the same length
       - graphing options, such as ``pylab.subplots_adjust`` and ``pylab.legend()`` may be used to additionally modify graphics
 
     **Examples:**
-      
+
     .. sourcecode:: python
-    
+
         dismod3.graphics.plot_fit(model, ['i', 'p'], ['PY', '%'], (1,2), with_data=False, fig_size=(10,4))
         pylab.subplots_adjust(wspace=.3)
 
@@ -149,16 +155,16 @@ def plot_fit(model, data_types=['i', 'r', 'f', 'p', 'rr', 'pf'], ylab=['PY','PY'
         :align: center
 
     .. sourcecode:: python
-    
+
         dismod3.graphics.plot_fit(model, ['i', 'p'], ['PY', '%'], (1,2), fig_size=(8,8))
         pylab.legend()
 
     .. figure:: graphics_plot_fit_single.png
-        :align: center        
-    
+        :align: center
+
     """
     assert len(data_types) == len(ylab), 'data_types and y-axis labels are not the same length'
-    
+
     vars = model.vars
     plt.figure(figsize=fig_size)
     try:
@@ -167,8 +173,9 @@ def plot_fit(model, data_types=['i', 'r', 'f', 'p', 'rr', 'pf'], ylab=['PY','PY'
         ages = vars[data_types[0]]['ages']
     for j, t in enumerate(data_types):
         plt.subplot(plot_config[0], plot_config[1], j+1)
-        if with_data == 1: 
-            data_bars(model.input_data[model.input_data['data_type'] == t], color='grey', label='Data')
+        if with_data == 1:
+            data_bars(model.input_data[model.input_data['data_type']
+                                       == t], color='grey', label='Data')
         if 'knots' in vars[t]:
             knots = vars[t]['knots']
         else:
@@ -176,8 +183,10 @@ def plot_fit(model, data_types=['i', 'r', 'f', 'p', 'rr', 'pf'], ylab=['PY','PY'
         try:
             plt.plot(ages, vars[t]['mu_age'].stats()['mean'], 'k-', linewidth=2, label='Posterior')
             if with_ui == 1:
-                plt.plot(ages[knots], vars[t]['mu_age'].stats()['95% HPD interval'][knots,:][:,0], 'k--', label='95% HPD')
-                plt.plot(ages[knots], vars[t]['mu_age'].stats()['95% HPD interval'][knots,:][:,1], 'k--')
+                plt.plot(ages[knots], vars[t]['mu_age'].stats()['95% HPD interval']
+                         [knots, :][:, 0], 'k--', label='95% HPD')
+                plt.plot(ages[knots], vars[t]['mu_age'].stats()[
+                         '95% HPD interval'][knots, :][:, 1], 'k--')
         except (TypeError, AttributeError, KeyError):
             print('Could not generate output statistics')
             if t in vars:
@@ -188,21 +197,22 @@ def plot_fit(model, data_types=['i', 'r', 'f', 'p', 'rr', 'pf'], ylab=['PY','PY'
             mu = (emp_priors[t, 'mu']+1.e-9)[::5]
             s = (emp_priors[t, 'sigma']+1.e-9)[::5]
             plt.errorbar(ages[::5], mu,
-                        yerr=[mu - np.exp(np.log(mu) - (s/mu+.1)),
-                              np.exp(np.log(mu) + (s/mu+.1)) - mu],
-                        color='grey', linewidth=1, capsize=0)
+                         yerr=[mu - np.exp(np.log(mu) - (s/mu+.1)),
+                               np.exp(np.log(mu) + (s/mu+.1)) - mu],
+                         color='grey', linewidth=1, capsize=0)
 
         plt.xlabel('Age (years)')
         plt.ylabel(ylab[j])
         plt.title(t)
-    
+
+
 def plot_one_ppc(model, t):
     """ plot data and posterior predictive check
-    
+
     :Parameters:
       - `model` : data.ModelData
       - `t` : str, data type of 'i', 'r', 'f', 'p', 'rr', 'm', 'X', 'pf', 'csmr'
-    
+
     """
     stats = model.vars[t]['p_pred'].stats()
     if stats == None:
@@ -213,26 +223,27 @@ def plot_one_ppc(model, t):
 
     x = model.vars[t]['p_obs'].value.__array__()
     y = x - stats['quantiles'][50]
-    yerr = [stats['quantiles'][50] - np.atleast_2d(stats['95% HPD interval'])[:,0],
-            np.atleast_2d(stats['95% HPD interval'])[:,1] - stats['quantiles'][50]]
+    yerr = [stats['quantiles'][50] - np.atleast_2d(stats['95% HPD interval'])[:, 0],
+            np.atleast_2d(stats['95% HPD interval'])[:, 1] - stats['quantiles'][50]]
     plt.errorbar(x, y, yerr=yerr, fmt='ko', mec='w', capsize=0,
-                label='Obs vs Residual (Obs - Pred)')
+                 label='Obs vs Residual (Obs - Pred)')
 
     plt.xlabel('Observation')
     plt.ylabel('Residual (observation-prediction)')
 
     plt.grid()
-    l,r,b,t = plt.axis()
+    l, r, b, t = plt.axis()
     plt.hlines([0], l, r)
     plt.axis([l, r, y.min()*1.1 - y.max()*.1, -y.min()*.1 + y.max()*1.1])
 
+
 def effects(model, data_type, figsize=(22, 17)):
     """ Plot random effects and fixed effects.
-    
+
     :Parameters:
       - `model` : data.ModelData
       - `data_types` : str, one of 'i', 'r', 'f', 'p', 'rr', 'pf'
-      
+
     """
     vars = model.vars[data_type]
     hierarchy = model.hierarchy
@@ -242,9 +253,9 @@ def effects(model, data_type, figsize=(22, 17)):
     for i, (covariate, effect) in enumerate([['U', 'alpha'], ['X', 'beta']]):
         if covariate not in vars:
             continue
-        
+
         cov_name = list(vars[covariate].columns)
-        
+
         if isinstance(vars.get(effect), mc.Stochastic):
             plt.subplot(1, 2, i+1)
             plt.title('%s_%s' % (effect, data_type))
@@ -260,20 +271,22 @@ def effects(model, data_type, figsize=(22, 17)):
                 x = np.atleast_1d(stats['mean'])
                 y = np.arange(len(x))
 
-                xerr = np.array([x - np.atleast_2d(stats['95% HPD interval'])[:,0],
-                                 np.atleast_2d(stats['95% HPD interval'])[:,1] - x])
-                plt.errorbar(x[index], y[index], xerr=xerr[:, index], fmt='s', mec='w', color=colors[1])
+                xerr = np.array([x - np.atleast_2d(stats['95% HPD interval'])[:, 0],
+                                 np.atleast_2d(stats['95% HPD interval'])[:, 1] - x])
+                plt.errorbar(x[index], y[index], xerr=xerr[:, index],
+                             fmt='s', mec='w', color=colors[1])
 
-                l,r,b,t = plt.axis()
+                l, r, b, t = plt.axis()
                 plt.vlines([0], b-.5, t+.5)
                 #plt.hlines(y, l, r, linestyle='dotted')
                 plt.xticks([l, l/2, 0, r/2, r])
                 plt.yticks([])
                 for i in index:
-                    spaces = cov_name[i] in hierarchy and len(nx.shortest_path(hierarchy, 'all', cov_name[i])) or 0
+                    spaces = cov_name[i] in hierarchy and len(
+                        nx.shortest_path(hierarchy, 'all', cov_name[i])) or 0
                     plt.text(l, y[i], ' %s%s' % (' * '*spaces, cov_name[i]), va='center', ha='left')
                 plt.axis([l, r, -.5, t+.5])
-                
+
         if isinstance(vars.get(effect), list):
             plt.subplot(1, 2, i+1)
             plt.title('%s_%s' % (effect, data_type))
@@ -287,29 +300,30 @@ def effects(model, data_type, figsize=(22, 17)):
                     if stats:
                         x = np.atleast_1d(stats['mean'])
 
-                        xerr = np.array([x - np.atleast_2d(stats['95% HPD interval'])[:,0],
-                                         np.atleast_2d(stats['95% HPD interval'])[:,1] - x])
+                        xerr = np.array([x - np.atleast_2d(stats['95% HPD interval'])[:, 0],
+                                         np.atleast_2d(stats['95% HPD interval'])[:, 1] - x])
                         plt.errorbar(x, y, xerr=xerr, fmt='s', mec='w', color=colors[1])
 
-            l,r,b,t = plt.axis()
+            l, r, b, t = plt.axis()
             plt.vlines([0], b-.5, t+.5)
             #plt.hlines(y, l, r, linestyle='dotted')
             plt.xticks([l, l/2, 0, r/2, r])
             plt.yticks([])
 
             for y, i in enumerate(index):
-                spaces = cov_name[i] in hierarchy and len(nx.shortest_path(hierarchy, 'all', cov_name[i])) or 0
+                spaces = cov_name[i] in hierarchy and len(
+                    nx.shortest_path(hierarchy, 'all', cov_name[i])) or 0
                 plt.text(l, y, ' %s%s' % (' * '*spaces, cov_name[i]), va='center', ha='left')
 
             plt.axis([l, r, -.5, t+.5])
-                
 
             effect_str = '\n'
             if effect == 'alpha':
                 for sigma in vars['sigma_alpha']:
                     stats = sigma.stats()
                     if stats:
-                        effect_str += '%s = %.3f -\n' % (sigma.__name__, stats['mean'])  # FIXME: pylab doesn't align right correctly for lines that end in spaces
+                        # FIXME: pylab doesn't align right correctly for lines that end in spaces
+                        effect_str += '%s = %.3f -\n' % (sigma.__name__, stats['mean'])
                     else:
                         effect_str += '%s = %.3f -\n' % (sigma.__name__, sigma.value)
                 plt.text(r, t, effect_str, va='top', ha='right')
@@ -326,7 +340,7 @@ def effects(model, data_type, figsize=(22, 17)):
 
 def plot_hists(vars):
     """ Plot histograms for all stochs in a dict or dict of dicts
-    
+
     :Parameters:
       - `vars` : data.ModelData.vars
 
@@ -338,21 +352,22 @@ def plot_hists(vars):
         plt.xticks(ticks[1:6:2], fontsize=8)
 
     plot_viz_of_stochs(vars, hist)
-    plt.subplots_adjust(0,.1,1,1,0,.2)
+    plt.subplots_adjust(0, .1, 1, 1, 0, .2)
 
 
 def plot_acorr(model):
     from matplotlib import mlab
+
     def acorr(trace):
         if len(trace) > 50:
             plt.acorr(trace, normed=True, detrend=mlab.detrend_mean, maxlags=50)
         plt.xticks([])
         plt.yticks([])
-        l,r,b,t = plt.axis()
+        l, r, b, t = plt.axis()
         plt.axis([-10, r, -.1, 1.1])
 
-    plot_viz_of_stochs(model.vars, acorr, (12,9))
-    plt.subplots_adjust(0,0,1,1,0,0)
+    plot_viz_of_stochs(model.vars, acorr, (12, 9))
+    plt.subplots_adjust(0, 0, 1, 1, 0, 0)
 
 
 def plot_trace(model):
@@ -360,17 +375,18 @@ def plot_trace(model):
         plt.plot(trace)
         plt.xticks([])
 
-    plot_viz_of_stochs(model.vars, show_trace, (12,9))
-    plt.subplots_adjust(.05,.01,.99,.99,.5,.5)
+    plot_viz_of_stochs(model.vars, show_trace, (12, 9))
+    plt.subplots_adjust(.05, .01, .99, .99, .5, .5)
 
-def plot_viz_of_stochs(vars, viz_func, figsize=(8,6)):
+
+def plot_viz_of_stochs(vars, viz_func, figsize=(8, 6)):
     """ Plot autocorrelation for all stochs in a dict or dict of dicts
-    
+
     :Parameters:
       - `vars` : dictionary
       - `viz_func` : visualazation function such as ``acorr``, ``show_trace``, or ``hist``
       - `figsize` : tuple, size of figure
-    
+
     """
     plt.figure(figsize=figsize)
 
@@ -388,13 +404,13 @@ def plot_viz_of_stochs(vars, viz_func, figsize=(8,6)):
         for d in range(len(np.atleast_1d(s.value))):
             plt.subplot(rows, cols, tile)
             viz_func(np.atleast_2d(trace)[:, d])
-            plt.title('\n\n%s[%d]'%(s.__name__, d), va='top', ha='center', fontsize=8)
+            plt.title('\n\n%s[%d]' % (s.__name__, d), va='top', ha='center', fontsize=8)
             tile += 1
 
 
 def tally_stochs(vars):
     """ Count number of stochastics in model
-    
+
     :Parameters:
       - `vars` : dictionary
 
@@ -421,9 +437,10 @@ def tally_stochs(vars):
                     cells += len(np.atleast_1d(n.value))
     return cells, stochs
 
+
 def data_value_by_covariates(inp):
     """ Show raw values of data stratified by all x_* covariates
-    
+
     :Parameters:
       - `inp` : pd.DataFrame of input data
     """
@@ -433,21 +450,22 @@ def data_value_by_covariates(inp):
     assert len(X.columns) <= 20, "FIXME: currently only works for up to 20 covariates"
 
     for i, c_i in enumerate(X.columns):
-        plt.subplot(4,5,1+i)
+        plt.subplot(4, 5, 1+i)
         plt.title('\n'+c_i, va='top', fontsize=10)
         plt.ylabel('prevalence')
         plt.plot(X[c_i]+np.random.normal(size=len(y))*.03, y, 'k.', alpha=.5)
         plt.axis(xmin=-.1, xmax=1.1, ymin=-.1, ymax=1.1)
         plt.subplots_adjust(hspace=.5, wspace=.5)
 
+
 def plot_residuals(dm):
     inp = dm.input_data
     plt.plot((inp.age_start+inp.age_end)/2 + 2*np.random.randn(len(inp.index)),
              inp.value - dm.vars['p']['mu_interval'].trace().mean(axis=0), 's',
              mec=colors[0], mew=1, color='w')
-    plt.hlines([0],0,100, linestyle='dashed')
+    plt.hlines([0], 0, 100, linestyle='dashed')
     plt.xlabel('Age (years)')
     plt.ylabel('Residual (observed $-$ predicted)')
-    l,r,b,t = plt.axis()
-    plt.vlines(dm.parameters['p']['parameter_age_mesh'],-1,1, linestyle='solid', color=colors[1])
-    plt.axis([-5,105,b,t])
+    l, r, b, t = plt.axis()
+    plt.vlines(dm.parameters['p']['parameter_age_mesh'], -1, 1, linestyle='solid', color=colors[1])
+    plt.axis([-5, 105, b, t])

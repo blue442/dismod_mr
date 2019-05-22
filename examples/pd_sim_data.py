@@ -5,8 +5,8 @@
 
 # A motivating example: descriptive epidemiological meta-regression of Parkinson's Disease
 # ========================================================================================
-# 
-# The goal of this document it give a concise demonstration of the 
+#
+# The goal of this document it give a concise demonstration of the
 # strengths and limitations of DisMod-MR, the descriptive
 # epidemiological meta-regression tool developed for the Global Burden of Disease,
 # Injuries, and Risk Factors 2010 (GBD2010) Study.
@@ -21,7 +21,7 @@
 # with disability weights to measure years lived with disability (YLDs),
 # which were then combined with estimates of years of life lost (YLLs)
 # to produce estimates of the burden of PD quantified in disability-adjusted life-years (DALYs).
-# 
+#
 # PD is a neurodegenerative disorder that includes symptoms of motor
 # dysfunction, such as tremors, rigidity, and akinesia, in the early
 # stages of the disease.  As the disease develops, most patients also
@@ -40,17 +40,18 @@
 # <codecell>
 
 import dismod_mr
-import pymc as mc, pandas as pd
+import pymc as mc
+import pandas as pd
 
 # <markdowncell>
 
-# 
+#
 # DisMod-MR uses the integrative systems modeling (ISM) approach to produce simultaneous
 # estimates of disease incidence, prevalence, remission, and mortality. The hallmark of
 # ISM is incorporating all available data.  In the case of Parkinson's Disease this
 # consists of population level measurements of incidence, prevalence, standardized mortality rate (SMR),
 # and cause-specific mortality rate (CSMR).
-# 
+#
 # I will begin with a look at a subset of this data, however.  Only that from females in the Europe, Western GBD region.
 
 # <codecell>
@@ -65,7 +66,7 @@ model.keep(areas=['europe_western'], sexes=['female', 'total'])
 # <codecell>
 
 summary = model.input_data.groupby('data_type')['value'].describe()
-round_(summary,3).unstack().sort('count', ascending=False)
+round_(summary, 3).unstack().sort('count', ascending=False)
 
 # <markdowncell>
 
@@ -79,7 +80,7 @@ model.get_data('smr').value.mean()
 # <codecell>
 
 groups = model.get_data('p').groupby('area')
-print round_(groups['value'].describe(),3).unstack().sort('50%', ascending=False)
+print round_(groups['value'].describe(), 3).unstack().sort('50%', ascending=False)
 
 # <markdowncell>
 
@@ -95,9 +96,9 @@ for i, c_i in enumerate(countries):
 # <codecell>
 
 ax = None
-figure(figsize=(10,4))
+figure(figsize=(10, 4))
 for i, c_i in enumerate(countries):
-    ax = subplot(1,2,1+i, sharey=ax, sharex=ax)
+    ax = subplot(1, 2, 1+i, sharey=ax, sharex=ax)
     dismod_mr.plot.data_bars(c[i])
     xlabel('Age (years)')
     ylabel('Prevalence (per 1)')
@@ -113,7 +114,7 @@ subplots_adjust(wspace=.3)
 # <markdowncell>
 
 # DisMod-MR has four features that make it particularly suited for estimating age-specific prevalence of PD from this data:
-# 
+#
 # * Piecewise linear spline model for change in prevalence as a function of age
 # * Age-standardizing model of age-group heterogeneity represents the heterogeneous age groups collected in systematic review
 # * Country-level random effects for true variation in prevalence between countries
@@ -138,18 +139,18 @@ model.vars += dismod_mr.model.asr(model, 'p')
 # <codecell>
 
 # plot age-specific prevalence estimates over data bars
-figure(figsize=(10,4))
+figure(figsize=(10, 4))
 
 dismod_mr.plot.data_bars(model.get_data('p'), color='grey', label='Simulated PD Data')
 pred = dismod_mr.model.predict_for(model, model.parameters['p'], 'all', 'female', 2005,
-                                      'europe_western', 'female', 2005, 1.,
-                                      model.vars['p'], 0., 1.)    # TODO: simplify this method!
+                                   'europe_western', 'female', 2005, 1.,
+                                   model.vars['p'], 0., 1.)    # TODO: simplify this method!
 
 hpd = mc.utils.hpd(pred, .05)
 
 plot(arange(101), pred.mean(axis=0), 'k-', linewidth=2, label='Posterior Mean')
-plot(arange(101), hpd[:,0], 'k--', linewidth=1, label='95% HPD interval')
-plot(arange(101), hpd[:,1], 'k--', linewidth=1)
+plot(arange(101), hpd[:, 0], 'k--', linewidth=1, label='95% HPD interval')
+plot(arange(101), hpd[:, 1], 'k--', linewidth=1)
 
 xlabel('Age (years)')
 ylabel('Prevalence (per 1)')
@@ -167,14 +168,14 @@ p_only = model  # store results for future comparison
 # This estimate shows the nonlinear increase in prevalence as a function of age, where the slope of the
 # curve increases at age 60.  A nonlinear estimate like this is possible thanks to DisMod-MR's piecewise linear
 # spline model.
-# 
+#
 # The age-standardizing model for heterogeneous age groups is also important for
 # such settings; a naive approach, such as using the age interval midpoint, would result in under-estimating
 # the prevalence for age groups that include both individuals older and younger than 60.
 
 # <markdowncell>
 
-# 
+#
 # The exact age where the slope of the curve changes is _not_ entirely data driven in this example.  The knots
 # in the piecewise linear spline model were chosen a priori, on the following grid:
 
@@ -194,21 +195,22 @@ model.parameters['p']['parameter_age_mesh']
 # The country-level random effects in this model capture country-to-country variation in PD prevalence.
 # This variation is not visible in the graphic above, which shows the regional aggregation of country-level
 # estimates (using a population weighted average that takes uncertainty into account).
-# 
+#
 # The country-level random effects take the form of intercept shifts in log-prevalence space, with values
 # showing in the following:
 
 # <codecell>
 
 df = pd.DataFrame(index=[alpha_i.__name__ for alpha_i in model.vars['p']['alpha']],
-                      columns=['mean', 'lb', 'ub'])
+                  columns=['mean', 'lb', 'ub'])
 for alpha_i in model.vars['p']['alpha']:
     stats = alpha_i.stats()
-    df.ix[alpha_i.__name__] = (stats['mean'], stats['95% HPD interval'][0], stats['95% HPD interval'][1])
+    df.ix[alpha_i.__name__] = (stats['mean'], stats['95% HPD interval']
+                               [0], stats['95% HPD interval'][1])
 
 # <codecell>
 
-print round_(df.astype(float),3).sort('mean', ascending=False)
+print round_(df.astype(float), 3).sort('mean', ascending=False)
 
 # <markdowncell>
 
@@ -222,7 +224,7 @@ model.get_data('p').sort('age_start').filter(['age_start', 'age_end', 'area', 'v
 
 # <markdowncell>
 
-# The negative binomial model has an appropriately skewed distribution, where prevalence measurements 
+# The negative binomial model has an appropriately skewed distribution, where prevalence measurements
 # of zero are possible, but measurements of less than zero are not possible.  To demonstrate how this
 # functions, the next figure shows the "posterior predictive distribution" for the measurements above,
 # i.e. sample values that the model predicts would be found of the studies were conducted again under
@@ -236,12 +238,12 @@ ess = array(model.vars['p']['p_obs'].parents['n'])
 
 # <codecell>
 
-figure(figsize=(10,4))
+figure(figsize=(10, 4))
 
 sorted_indices = obs.argsort().argsort()
 jitter = mc.rnormal(0, .1**-2, len(pred))
 
-for i,s_i in enumerate(sorted_indices):
+for i, s_i in enumerate(sorted_indices):
     plot(s_i+jitter, pred[:, i], 'ko', mew=0, alpha=.25, zorder=-99)
 
 errorbar(sorted_indices, obs, yerr=1.96*sqrt(obs*(1-obs)/ess), fmt='ks', mew=1, mec='white', ms=5)
@@ -250,7 +252,7 @@ xticks([])
 xlabel('Measurement')
 ylabel('Prevalence (%)\n', ha='center')
 yticks([0, .02, .04, .06, .08], [0, 2, 4, 6, 8])
-axis([25.5,55.5,-.01,.1])
+axis([25.5, 55.5, -.01, .1])
 grid()
 title('Posterior Predictive distribution')
 
@@ -262,7 +264,7 @@ title('Posterior Predictive distribution')
 # <markdowncell>
 
 # Four additional features of DisMod-MR that are important for many settings are:
-# 
+#
 # * informative priors
 # * fixed effects to cross-walk between different studies
 # * fixed effects to predict out of sample
@@ -273,7 +275,7 @@ title('Posterior Predictive distribution')
 # Informative priors are useful for modeling disease with less data available than PD, for example to include
 # information that prevalence is zero for youngest ages, or than prevalence must be increasing as a function of
 # age between certain ages.
-# 
+#
 # The informative priors are also key to the "empirical Bayes" approach to modeling age-specific differences between
 # difference GBD regions.  In this setting, a model using all the world's data is used to produce estimates for each region,
 # and these estimates are used as priors in region-specific models together with the data relevant to that region only.
@@ -297,36 +299,48 @@ crosswalks
 
 # <codecell>
 
-round_(groups['value'].describe(),3).unstack()['mean']
+round_(groups['value'].describe(), 3).unstack()['mean']
 
 # <markdowncell>
 
 # Incorporating data on parameters other than prevalence
 # ------------------------------------------------------
-# 
+#
 # So far this example has focused on modeling the prevalence of PD from the
 # prevalence data alone.  However, this represents about half of the available
 # data.  There is also information on incidence, SMR, and CSMR, which has not
 # yet been incorporated.
-# 
+#
 # DisMod-MR is capable of including all of the available data, using a compartmental
 # model of disease moving through a population.  This model formalizes the observation
 # that prevalent cases must once have been incident cases, and continue to be prevalent
 # cases until remission or death.
-# 
+#
 # In this model, incidence, remission, and excess-mortality are age-standardizing negative binomial random effect spline models,
 # while prevalence, SMR, CSMR, and other parameters come from the solution to a system of ordinary differential equations.
-# 
+#
 # The results of this model are smoother prevalence curves that take longer to calculate.
 
 # <codecell>
 
-figure(figsize=(10,6))
+figure(figsize=(10, 6))
 
-subplot(2,2,1); dismod_mr.plot.data_bars(model.get_data('p')); xlabel('Age (years)'); ylabel('Prevalence')
-subplot(2,2,2); dismod_mr.plot.data_bars(model.get_data('i')); xlabel('Age (years)'); ylabel('Incidence')
-subplot(2,2,3); dismod_mr.plot.data_bars(model.get_data('csmr')); xlabel('Age (years)'); ylabel('Cause-specific mortality')
-subplot(2,2,4); dismod_mr.plot.data_bars(model.get_data('smr')); xlabel('Age (years)'); ylabel('Standardized \nmortality ratio')
+subplot(2, 2, 1)
+dismod_mr.plot.data_bars(model.get_data('p'))
+xlabel('Age (years)')
+ylabel('Prevalence')
+subplot(2, 2, 2)
+dismod_mr.plot.data_bars(model.get_data('i'))
+xlabel('Age (years)')
+ylabel('Incidence')
+subplot(2, 2, 3)
+dismod_mr.plot.data_bars(model.get_data('csmr'))
+xlabel('Age (years)')
+ylabel('Cause-specific mortality')
+subplot(2, 2, 4)
+dismod_mr.plot.data_bars(model.get_data('smr'))
+xlabel('Age (years)')
+ylabel('Standardized \nmortality ratio')
 
 # <codecell>
 
@@ -339,41 +353,60 @@ model.vars += dismod_mr.model.consistent(model)
 
 # <codecell>
 
-figure(figsize=(10,6))
+figure(figsize=(10, 6))
 
-subplot(2,2,1); dismod_mr.plot.data_bars(model.get_data('p')); xlabel('Age (years)'); ylabel('Prevalence')
-subplot(2,2,2); dismod_mr.plot.data_bars(model.get_data('i')); xlabel('Age (years)'); ylabel('Incidence')
-subplot(2,2,3); dismod_mr.plot.data_bars(model.get_data('csmr')); xlabel('Age (years)'); ylabel('Cause-specific mortality')
-subplot(2,2,4); dismod_mr.plot.data_bars(model.get_data('smr')); xlabel('Age (years)'); ylabel('Standardized \nmortality ratio')
-param_list = [dict(type='p', title='(a)', ylabel='Prevalence (%)', yticks=([0, .01, .02], [0, 1, 2]), axis=[30,101,-0.001,.025]),
-          dict(type='i', title='(b)', ylabel='Incidence \n(per 1000 PY)', yticks=([0, .001,.002, .003, .004], [0, 1, 2, 3, 4]), axis=[30,104,-.0003,.0055]),
-          dict(type='pf', title='(c)', ylabel='Cause-specific mortality \n(per 1000 PY)', yticks=([0, .001,.002], [0, 1, 2]), axis=[30,104,-.0002,.003]),
-          dict(type='smr', title='(d)', ylabel='Standardized \nmortality ratio', yticks=([1, 2, 3,4, ], [1, 2,3, 4]), axis=[35,104,.3,4.5]),
-          ]
+subplot(2, 2, 1)
+dismod_mr.plot.data_bars(model.get_data('p'))
+xlabel('Age (years)')
+ylabel('Prevalence')
+subplot(2, 2, 2)
+dismod_mr.plot.data_bars(model.get_data('i'))
+xlabel('Age (years)')
+ylabel('Incidence')
+subplot(2, 2, 3)
+dismod_mr.plot.data_bars(model.get_data('csmr'))
+xlabel('Age (years)')
+ylabel('Cause-specific mortality')
+subplot(2, 2, 4)
+dismod_mr.plot.data_bars(model.get_data('smr'))
+xlabel('Age (years)')
+ylabel('Standardized \nmortality ratio')
+param_list = [dict(type='p', title='(a)', ylabel='Prevalence (%)', yticks=([0, .01, .02], [0, 1, 2]), axis=[30, 101, -0.001, .025]),
+              dict(type='i', title='(b)', ylabel='Incidence \n(per 1000 PY)', yticks=(
+                  [0, .001, .002, .003, .004], [0, 1, 2, 3, 4]), axis=[30, 104, -.0003, .0055]),
+              dict(type='pf', title='(c)', ylabel='Cause-specific mortality \n(per 1000 PY)',
+                   yticks=([0, .001, .002], [0, 1, 2]), axis=[30, 104, -.0002, .003]),
+              dict(type='smr', title='(d)', ylabel='Standardized \nmortality ratio',
+                   yticks=([1, 2, 3, 4, ], [1, 2, 3, 4]), axis=[35, 104, .3, 4.5]),
+              ]
 
 for i, params in enumerate(param_list):
-    ax = subplot(2,2,i+1)
-    if params['type'] == 'pf': dismod_mr.plot.data_bars(model.get_data('csmr'), color='grey')
-    else: dismod_mr.plot.data_bars(model.get_data(params['type']), color='grey')
-    
-    if params['type'] == 'smr': model.pred = dismod_mr.model.predict_for(model, model.parameters.get('smr', {}), 'all', 'female', 2005, 
-                                                               'europe_western', 'female', 2005, 1., model.vars['smr'], 0., 100.).T
-    else : model.pred = dismod_mr.model.predict_for(model, model.parameters[params['type']],
-                                                       'all', 'female', 2005, 
-                                                       'europe_western', 'female', 2005, 1., model.vars[params['type']], 0., 1.).T
-    
+    ax = subplot(2, 2, i+1)
+    if params['type'] == 'pf':
+        dismod_mr.plot.data_bars(model.get_data('csmr'), color='grey')
+    else:
+        dismod_mr.plot.data_bars(model.get_data(params['type']), color='grey')
+
+    if params['type'] == 'smr':
+        model.pred = dismod_mr.model.predict_for(model, model.parameters.get('smr', {}), 'all', 'female', 2005,
+                                                 'europe_western', 'female', 2005, 1., model.vars['smr'], 0., 100.).T
+    else:
+        model.pred = dismod_mr.model.predict_for(model, model.parameters[params['type']],
+                                                 'all', 'female', 2005,
+                                                 'europe_western', 'female', 2005, 1., model.vars[params['type']], 0., 1.).T
+
     plot(arange(101), model.pred.mean(axis=1), 'k-', linewidth=2, label='Posterior Mean')
     hpd = mc.utils.hpd(model.pred.T, .05)
-    plot(arange(101), hpd[:,0], 'k-', linewidth=1, label='95% HPD interval')
-    plot(arange(101), hpd[:,1], 'k-', linewidth=1)
+    plot(arange(101), hpd[:, 0], 'k-', linewidth=1, label='95% HPD interval')
+    plot(arange(101), hpd[:, 1], 'k-', linewidth=1)
 
     xlabel('Age (years)')
     ylabel(params['ylabel']+'\n\n', ha='center')
-    axis(params.get('axis', [-5,105,-.005,.06]))
+    axis(params.get('axis', [-5, 105, -.005, .06]))
     yticks(*params.get('yticks', ([0, .025, .05], [0, 2.5, 5])))
     title(params['title'])
     grid()
-    
+
 subplots_adjust(hspace=.35, wspace=.35, top=.97)
 
 # <codecell>
@@ -388,23 +421,23 @@ p_with = model
 # of the remission rate as well, but there is no remission of PD, so the estimates of zero
 # are not very interesting in this example.  It is another place that informative priors are useful,
 # however.
-# 
+#
 # There are also differences between the means and uncertainty intervals estimated by these methods,
-# which show that the additional data is important.  Although the prevalence data alone predicts 
+# which show that the additional data is important.  Although the prevalence data alone predicts
 # age-specific prevalence that peaks at 2%, when the incidence and mortality data is also included, the
 # maximum prevalence is a bit lower, closer to 1.5%.
 
 # <codecell>
 
 p1 = dismod_mr.model.predict_for(p_only, model.parameters['p'],
-                                    'all', 'total', 'all', 
-                                    'europe_western', 'female', 2005, 1.,
-                                    p_only.vars['p'], 0., 1.)
+                                 'all', 'total', 'all',
+                                 'europe_western', 'female', 2005, 1.,
+                                 p_only.vars['p'], 0., 1.)
 
 p2 = dismod_mr.model.predict_for(p_with, model.parameters['p'],
-                                    'all', 'total', 'all', 
-                                    'europe_western', 'female', 2005, 1.,
-                                    p_with.vars['p'], 0., 1.)
+                                 'all', 'total', 'all',
+                                 'europe_western', 'female', 2005, 1.,
+                                 p_with.vars['p'], 0., 1.)
 
 # <codecell>
 
@@ -414,7 +447,7 @@ plot(p2.mean(axis=0), 'k-', linewidth=2, label='All available')
 xlabel('Age (years)')
 ylabel('Prevalence (%)\n\n', ha='center')
 yticks([0, .01, .02], [0, 1, 2])
-axis([30,101,-0.001,.025])
+axis([30, 101, -0.001, .025])
 legend(loc='upper left')
 grid()
 
@@ -427,8 +460,10 @@ subplots_adjust(top=.97, bottom=.16)
 
 # <codecell>
 
-hist(100*p1[:,80], normed=True, histtype='step', label='Only prevalence', linewidth=3, color=array([239., 138., 98., 256.])/256)
-hist(100*p2[:,80], normed=True, histtype='step', label='All available', linewidth=3, color=array([103, 169, 207, 256.])/256)
+hist(100*p1[:, 80], normed=True, histtype='step', label='Only prevalence',
+     linewidth=3, color=array([239., 138., 98., 256.])/256)
+hist(100*p2[:, 80], normed=True, histtype='step', label='All available',
+     linewidth=3, color=array([103, 169, 207, 256.])/256)
 title('PD prevalence at age 80')
 xlabel('Prevalence (%)\n\n', ha='center')
 ylabel('Probability Density')
@@ -441,11 +476,11 @@ subplots_adjust(bottom=.16)
 
 # Conclusion
 # ==========
-# 
+#
 # I hope that this example is a quick way to see the strengths and weaknesses of DisMod-MR.
 # This model is particularly suited for estimating descriptive epidemiology of diseases
 # with sparse, noisy data from multiple, incompatible sources.
-# 
+#
 # I am currently working to make it faster, as well as to improve the capabilities for modeling
 # changes between regions over time.
 
@@ -454,5 +489,3 @@ subplots_adjust(bottom=.16)
 !date
 
 # <codecell>
-
-

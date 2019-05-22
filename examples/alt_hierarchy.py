@@ -4,14 +4,16 @@
 # <markdowncell>
 
 # # Setting the hierarchy in DisMod-MR
-# 
+#
 # The goal of this document is to demonstrate how to set the spatial hierarchy for the random effects in DisMod-MR.
-# 
+#
 # The examples are based on a spatial hierarchy of Japan, provided by Ver Bilano, and included in the examples directory.
 
 # <codecell>
 
-import dismod_mr, pandas as pd
+import random
+import dismod_mr
+import pandas as pd
 
 # <codecell>
 
@@ -27,7 +29,6 @@ df.head()
 
 # <codecell>
 
-import random
 
 # <codecell>
 
@@ -81,7 +82,7 @@ dm.vars = dismod_mr.model.asr(dm, 'p', rate_type='neg_binom')
 
 # <codecell>
 
-dismod_mr.plot.effects(dm, 'p', figsize=(18,10))
+dismod_mr.plot.effects(dm, 'p', figsize=(18, 10))
 
 # <markdowncell>
 
@@ -107,7 +108,7 @@ dm.vars = dismod_mr.model.asr(dm, 'p', rate_type='neg_binom')
 
 # <codecell>
 
-dismod_mr.plot.effects(dm, 'p', figsize=(18,14))
+dismod_mr.plot.effects(dm, 'p', figsize=(18, 14))
 
 # <markdowncell>
 
@@ -116,4 +117,3 @@ dismod_mr.plot.effects(dm, 'p', figsize=(18,14))
 # <codecell>
 
 !date
-

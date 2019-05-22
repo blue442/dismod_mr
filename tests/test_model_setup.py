@@ -20,7 +20,7 @@ def test_setup():
 
     #     dm.setup_model(rate_type='p', rate_model=rate_model)
 
+
 if __name__ == '__main__':
     import nose
     nose.runmodule()
-    

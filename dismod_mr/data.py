@@ -1,9 +1,9 @@
 
 
 # Copyright 2008-2012 University of Washington
-# 
+#
 # This file is part of DisMod-MR.
-# 
+#
 # DisMod-MR is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -13,7 +13,7 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU Affero General Public License
 # along with DisMod-MR.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -30,8 +30,9 @@ except ImportError:
 
 from . import plot
 
+
 def my_stats(self, alpha=0.05, start=0, batches=100,
-           chain=None, quantiles=(2.5, 25, 50, 75, 97.5)):
+             chain=None, quantiles=(2.5, 25, 50, 75, 97.5)):
     trace = self.trace()
 
     n = len(trace)
@@ -46,8 +47,8 @@ def my_stats(self, alpha=0.05, start=0, batches=100,
         'standard deviation': trace.std(0),
         'mean': trace.mean(0),
         '%s%s HPD interval' % (int(100 * (1 - alpha)), '%'): mc.utils.hpd(trace, alpha),
-        #'mc error': batchsd(trace, min(n, batches)),
-        #'quantiles': utils.quantiles(trace, qlist=quantiles)
+        # 'mc error': batchsd(trace, min(n, batches)),
+        # 'quantiles': utils.quantiles(trace, qlist=quantiles)
     }
 
 
@@ -55,8 +56,8 @@ def describe_vars(d):
     m = mc.Model(d)
 
     df = pd.DataFrame(columns=['type', 'value', 'logp'],
-                          index=[n.__name__ for n in m.nodes],
-                          dtype=object)
+                      index=[n.__name__ for n in m.nodes],
+                      dtype=object)
     for n in m.nodes:
         k = n.__name__
         df.ix[k, 'type'] = type(n).__name__
@@ -86,13 +87,15 @@ def check_convergence(vars):
         if len(tr.shape) == 1:
             tr = tr.reshape((len(tr), 1))
         for d in range(len(pl.atleast_1d(s.value))):
-            for k in range(50,100):
-                acorr = pl.dot(tr[:-k,d]-tr[:k,d].mean(), tr[k:,d]-tr[k:,d].mean()) / pl.dot(tr[k:,d]-tr[k:,d].mean(), tr[k:,d]-tr[k:,d].mean())
+            for k in range(50, 100):
+                acorr = pl.dot(tr[:-k, d]-tr[:k, d].mean(), tr[k:, d]-tr[k:, d].mean()) / \
+                    pl.dot(tr[k:, d]-tr[k:, d].mean(), tr[k:, d]-tr[k:, d].mean())
                 if abs(acorr) > .5:
                     print('potential non-convergence', s, acorr)
                     return False
-            
+
     return True
+
 
 class ModelVars(dict):
     """ Container class for PyMC Node objects that make up the model
@@ -105,14 +108,15 @@ class ModelVars(dict):
     ** say if the model has been run, and if it appears to have converged
     * .display() the model values in some informative graphical form (may need to be several functions)
     """
+
     def __iadd__(self, d):
         """ Over-ride += operator so that it updates dict with another
         dict, with verbose information about what is being added
         """
         #df = describe_vars(d)
-        #print "Adding Variables:"
-        #print df[:10]
-        #if len(df.index) > 10:
+        # print "Adding Variables:"
+        # print df[:10]
+        # if len(df.index) > 10:
         #    print '...\n(%d rows total)' % len(df.index)
 
         self.update(d)
@@ -145,19 +149,23 @@ class ModelVars(dict):
                 if 'U' in self[t]:
                     for i, re in enumerate(self[t]['U'].columns):
                         if isinstance(self[t]['alpha'][i], mc.Node):
-                            pdt['random_effects'][re] = dict(dist='Constant', mu=my_stats(self[t]['alpha'][i])['mean'])
+                            pdt['random_effects'][re] = dict(
+                                dist='Constant', mu=my_stats(self[t]['alpha'][i])['mean'])
                         else:
-                            pdt['random_effects'][re] = dict(dist='Constant', mu=self[t]['alpha'][i])
+                            pdt['random_effects'][re] = dict(
+                                dist='Constant', mu=self[t]['alpha'][i])
 
                 if 'X' in self[t]:
                     for i, fe in enumerate(self[t]['X'].columns):
                         if isinstance(self[t]['beta'][i], mc.Node):
-                            pdt['fixed_effects'][fe] = dict(dist='Constant', mu=my_stats(self[t]['beta'][i])['mean'])
+                            pdt['fixed_effects'][fe] = dict(
+                                dist='Constant', mu=my_stats(self[t]['beta'][i])['mean'])
                         else:
                             pdt['fixed_effects'][fe] = dict(dist='Constant', mu=self[t]['beta'][i])
 
                 prior_dict[t] = pdt
         return prior_dict
+
 
 class ModelData:
     """ ModelData object contains all information for a disease model:
@@ -166,7 +174,7 @@ class ModelData:
 
     def __init__(self):
         self.input_data = pd.DataFrame(columns=('data_type value area sex age_start age_end year_start year_end' +
-                                           ' standard_error effective_sample_size lower_ci upper_ci age_weights').split())
+                                                ' standard_error effective_sample_size lower_ci upper_ci age_weights').split())
         self.output_template = pd.DataFrame(columns='data_type area sex year pop'.split())
         self.parameters = dict(i={}, p={}, r={}, f={}, rr={}, X={}, pf={}, ages=range(101))
 
@@ -177,15 +185,15 @@ class ModelData:
 
         self.vars = ModelVars()
 
-        self.model_settings = {} # TODO: determine if this is a good idea, think carefully about name
+        self.model_settings = {}  # TODO: determine if this is a good idea, think carefully about name
 
     def get_data(self, data_type):
         """ Select data of one type.
-        
+
         :Parameters:
           - `data_type` : str, one of 'i', 'r', 'f', 'p', 'rr', 'pf', 'm', 'X', or 'csmr'
-        
-        :Results: 
+
+        :Results:
           - DataFrame of selected data type.
 
         """
@@ -199,16 +207,17 @@ class ModelData:
         df = self.get_data(data_type)
 
         for n in nx.dfs_postorder_nodes(G, 'all'):
-            G.node[n]['cnt'] = len(df[df['area']==n].index) + pl.sum([G.node[c]['cnt'] for c in G.successors(n)])
+            G.node[n]['cnt'] = len(df[df['area'] == n].index) + \
+                pl.sum([G.node[c]['cnt'] for c in G.successors(n)])
             G.node[n]['depth'] = nx.shortest_path_length(G, 'all', n)
-        
+
         for n in nx.dfs_preorder_nodes(G, 'all'):
             if G.node[n]['cnt'] > 0:
                 print(' *'*G.node[n]['depth'], n, int(G.node[n]['cnt']))
 
-
     def plot(self, rate_type=None):
-        import matplotlib.pyplot as plt, numpy as np
+        import matplotlib.pyplot as plt
+        import numpy as np
         import dismod_mr.plot as plot
 
         if rate_type or 'rate_type' in self.model_settings:
@@ -241,10 +250,11 @@ class ModelData:
 
                     pred = self.vars[t]['mu_age'].trace()
                     import pymc as mc
-                    ui =mc.utils.hpd(pred, .05)
+                    ui = mc.utils.hpd(pred, .05)
 
                     if len(knots) > 0:
-                        plt.plot(x[knots-a0], ui[:, knots-a0].T, '--', linewidth=2, color=plot.colors[0], alpha=1)
+                        plt.plot(x[knots-a0], ui[:, knots-a0].T, '--',
+                                 linewidth=2, color=plot.colors[0], alpha=1)
                     else:
                         plt.plot(x, ui, '--', linewidth=2, color=plot.colors[0], alpha=1)
 
@@ -259,11 +269,13 @@ class ModelData:
                             yy += [0., pred.mean(axis=0)[k_i-a0], np.nan]
                         plt.plot(xx, yy, linewidth=5, color='w')
                         plt.plot(xx, yy, linewidth=3, color=plot.colors[0])
-                        plt.plot(self.parameters['ages'], pred.mean(0), linewidth=3, color=plot.colors[0])
-                        plt.plot(knots, pred.mean(axis=0)[knots-a0], 's', ms=15, mec='w', color=plot.colors[0])
+                        plt.plot(self.parameters['ages'], pred.mean(
+                            0), linewidth=3, color=plot.colors[0])
+                        plt.plot(knots, pred.mean(axis=0)[knots-a0],
+                                 's', ms=15, mec='w', color=plot.colors[0])
 
                     import pymc as mc
-                    ui =mc.utils.hpd(pred, .05)
+                    ui = mc.utils.hpd(pred, .05)
                     plt.plot(x, pred.mean(0), linewidth=5, color='w')
                     plt.plot(x, pred.mean(0), linewidth=3, color=plot.colors[0])
 
@@ -294,20 +306,22 @@ class ModelData:
 
         self.input_data = self.input_data.select(lambda i: self.input_data['sex'][i] in sexes)
 
-        self.input_data = self.input_data.select(lambda i: self.input_data['year_end'][i] >= start_year)
-        self.input_data = self.input_data.select(lambda i: self.input_data['year_start'][i] <= end_year)
+        self.input_data = self.input_data.select(
+            lambda i: self.input_data['year_end'][i] >= start_year)
+        self.input_data = self.input_data.select(
+            lambda i: self.input_data['year_start'][i] <= end_year)
 
         print('kept %d rows of data' % len(self.input_data.index))
 
     def set_smoothness(self, rate_type, value):
         """ Set smoothness parameter for age-specific rate function of one type.
-        
+
         :Parameters:
           - `rate_type` : str, one of 'i', 'r', 'f', 'p', 'rr', 'pf', 'm', 'X', or 'csmr'
           - `value` : str, one of 'No Prior', 'Slightly', 'Moderately', or 'Very',
             or non-negative float
-        
-        :Results: 
+
+        :Results:
           - Changes the smoothing parameter in self.parameters
 
         """
@@ -315,14 +329,14 @@ class ModelData:
 
     def set_knots(self, rate_type, value):
         """ Set knots for age-specific rate function of one type.
-        
+
         :Parameters:
           - `rate_type` : str, one of 'i', 'r', 'f', 'p', 'rr', 'pf',
             'm', 'X', or 'csmr'
           - `value` : list, positions knots, start and end must
             correspond to parameters['ages']
-        
-        :Results: 
+
+        :Results:
           - Changes the knots in self.parameters[rate_type]
 
         """
@@ -331,7 +345,7 @@ class ModelData:
     def set_level_value(self, rate_type, age_before=None, age_after=None, value=0):
         """ Set level value for age-specific rate function of one
         type.
-        
+
         :Parameters:
           - `rate_type` : str, one of 'i', 'r', 'f', 'p', 'rr', 'pf',
             'm', 'X', or 'csmr'
@@ -341,8 +355,8 @@ class ModelData:
             more than this
           - `value` : float, value of the age-specific rate function
             before and after specified ages
-        
-        :Results: 
+
+        :Results:
           - Changes level_value in self.parameters[rate_type]
 
         """
@@ -351,12 +365,13 @@ class ModelData:
         if age_after == None:
             age_after = 0
 
-        self.parameters[rate_type]['level_value'] = dict(age_before=age_before, age_after=age_after, value=value)
+        self.parameters[rate_type]['level_value'] = dict(
+            age_before=age_before, age_after=age_after, value=value)
 
     def set_level_bounds(self, rate_type, lower=0, upper=1):
         """ Set level bounds for age-specific rate function of one
         type.
-        
+
         :Parameters:
           - `rate_type` : str, one of 'i', 'r', 'f', 'p', 'rr', 'pf',
             'm', 'X', or 'csmr'
@@ -365,8 +380,8 @@ class ModelData:
           - `upper` : float, maximum value of the age-specific rate
             function
 
-        
-        :Results: 
+
+        :Results:
           - Changes level_bounds in self.parameters[rate_type]
 
         """
@@ -375,7 +390,7 @@ class ModelData:
     def set_increasing(self, rate_type, age_start, age_end):
         """ Set increasing prior for age-specific rate function of one
         type.
-        
+
         :Parameters:
           - `rate_type` : str, one of 'i', 'r', 'f', 'p', 'rr', 'pf',
             'm', 'X', or 'csmr'
@@ -384,8 +399,8 @@ class ModelData:
           - `age_end` : int, maximum age of the age-specific rate
             function prior to increase
 
-        
-        :Results: 
+
+        :Results:
           - Changes increasing in self.parameters[rate_type]
 
         """
@@ -394,7 +409,7 @@ class ModelData:
     def set_decreasing(self, rate_type, age_start, age_end):
         """ Set decreasing prior for age-specific rate function of one
         type.
-        
+
         :Parameters:
           - `rate_type` : str, one of 'i', 'r', 'f', 'p', 'rr', 'pf',
             'm', 'X', or 'csmr'
@@ -403,8 +418,8 @@ class ModelData:
           - `age_end` : int, maximum age of the age-specific rate
             function prior to decrease
 
-        
-        :Results: 
+
+        :Results:
           - Changes decreasing in self.parameters[rate_type]
 
         """
@@ -413,14 +428,14 @@ class ModelData:
     def set_heterogeneity(self, rate_type, value):
         """ Set heterogeneity prior for age-specific rate function of one
         type.
-        
+
         :Parameters:
           - `rate_type` : str, one of 'i', 'r', 'f', 'p'
           - `value` : str, one of 'Unusable', 'Very', 'Moderately', or
             'Slightly'
 
-        
-        :Results: 
+
+        :Results:
           - Changes heterogeneity in self.parameters[rate_type]
 
         """
@@ -429,14 +444,14 @@ class ModelData:
     def set_effect_prior(self, rate_type, cov, value):
         """ Set prior for fixed or random effect of one
         type.
-        
+
         :Parameters:
           - `rate_type` : str, one of 'i', 'r', 'f', 'p'
           - `cov` : str, covariate name
           - `value` : dict, including keys `dist`, `mu`, and possibly
             `sigma`, `lower`, and `upper`
-        
-        :Results: 
+
+        :Results:
           - Changes heterogeneity in self.parameters[rate_type]
 
         :Notes:
@@ -453,11 +468,10 @@ class ModelData:
             if not effects in self.parameters[rate_type]:
                 self.parameters[rate_type][effects] = {}
 
-        if cov.startswith('x_'): # fixed effect
+        if cov.startswith('x_'):  # fixed effect
             self.parameters[rate_type]['fixed_effects'][cov] = value
-        else: # random effect
+        else:  # random effect
             self.parameters[rate_type]['random_effects'][cov] = value
-
 
     def setup_model(self, rate_type=None, rate_model='neg_binom',
                     interpolation_method='linear', include_covariates=True):
@@ -494,7 +508,7 @@ class ModelData:
                                   include_covariates=include_covariates)
 
             self.model_settings['rate_type'] = rate_type
-                
+
         else:
             self.vars = model.consistent(self, rate_type=rate_model)
             self.model_settings['consistent'] = True
@@ -513,23 +527,23 @@ class ModelData:
         from . import fit
 
         if 'rate_type' in self.model_settings:
-            rate_type=self.model_settings['rate_type']
+            rate_type = self.model_settings['rate_type']
 
-            if how=='mcmc':
+            if how == 'mcmc':
                 self.map, self.mcmc = fit.asr(
                     self, rate_type,
                     iter=iter, burn=burn, thin=thin)
-            elif how=='map':
+            elif how == 'map':
                 self.map = mc.MAP(self.vars[rate_type])
                 fit.find_asr_initial_vals(
                     self.vars[rate_type], 'fmin_powell', tol=1e-3, verbose=0)
                 self.map.fit(method='fmin_powell')
         elif 'consistent' in self.model_settings:
-            if how=='mcmc':
+            if how == 'mcmc':
                 self.map, self.mcmc = fit.consistent(
                     self,
                     iter=iter, burn=burn, thin=thin)
-            elif how=='map':
+            elif how == 'map':
                 raise NotImplementedError('not yet implemented')
         else:
             raise NotImplementedError('Need to call .setup_model before calling fit.')
@@ -551,35 +565,35 @@ class ModelData:
 
         :Results:
           - Saves files to specified path, overwritting what was there before
-        
+
         """
 
         self.input_data.to_csv(path + '/input_data.csv')
         self.output_template.to_csv(path + '/output_template.csv')
         json.dump(self.parameters, open(path + '/parameters.json', 'w'), indent=2)
         json.dump(dict(nodes=[[n, self.hierarchy.node[n]] for n in sorted(self.hierarchy.nodes())],
-                       edges=[[u, v, self.hierarchy.edge[u][v]] for u,v in sorted(self.hierarchy.edges())]),
+                       edges=[[u, v, self.hierarchy.edge[u][v]] for u, v in sorted(self.hierarchy.edges())]),
                   open(path + '/hierarchy.json', 'w'), indent=2)
         json.dump(list(self.nodes_to_fit), open(path + '/nodes_to_fit.json', 'w'), indent=2)
 
     @staticmethod
     def load(path):
         """ Load all model data
-        
+
         :Parameters:
           - `path` : str, directory to save in
-          
+
         :Results:
           - ModelData with all input data
-          
+
         .. note::
-          `path` must contain the following files 
-            - :ref:`input_data-label` 
-            - :ref:`output_template-label` 
+          `path` must contain the following files
+            - :ref:`input_data-label`
+            - :ref:`output_template-label`
             - :ref:`hierarchy-label`
             - :ref:`parameters-label`
             - :ref:`nodes_to_fit-label`
-        
+
         """
         d = ModelData()
 
@@ -587,13 +601,12 @@ class ModelData:
         d.input_data = pd.read_csv(path + '/input_data.csv')
 
         # ensure that certain columns are float
-        #for field in 'value standard_error upper_ci lower_ci effective_sample_size'.split():
+        # for field in 'value standard_error upper_ci lower_ci effective_sample_size'.split():
         #    #d.input_data.dtypes[field] = float  # TODO: figure out classy way like this, that works
         #    d.input_data[field] = pl.array(d.input_data[field], dtype=float)
 
-        
         d.output_template = pd.DataFrame.from_csv(path + '/output_template.csv')
-        
+
         d.parameters = json.load(open(path + '/parameters.json'))
 
         hierarchy = json.load(open(path + '/hierarchy.json'))
@@ -606,14 +619,14 @@ class ModelData:
 
     def invalid_precision(self):
         """ Identify rows of data with invalid precision
-        :Results: 
+        :Results:
           - DataFrame of rows with invalid quantification of uncertainty
 
         """
         rows = self.input_data.effective_sample_size.isnull() \
-          & self.input_data.standard_error.isnull() \
-          & (self.input_data.lower_ci.isnull() | self.input_data.upper_ci.isnull())
+            & self.input_data.standard_error.isnull() \
+            & (self.input_data.lower_ci.isnull() | self.input_data.upper_ci.isnull())
         return self.input_data[rows]
 
-load = ModelData.load
 
+load = ModelData.load

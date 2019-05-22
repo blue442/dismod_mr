@@ -19,10 +19,13 @@
 
 """ Covariate models"""
 
-import numpy as np, pymc as mc, pandas as pd, networkx as nx
+import numpy as np
+import pymc as mc
+import pandas as pd
+import networkx as nx
 import pdb
 
-sex_value = {'male': .5, 'total':0., 'female': -.5}
+sex_value = {'male': .5, 'total': 0., 'female': -.5}
 
 
 def MyTruncatedNormal(name, mu, tau, a, b, value):
@@ -46,6 +49,7 @@ def MyTruncatedNormal(name, mu, tau, a, b, value):
             return -np.inf
     return my_trunc_norm
 
+
 def mean_covariate_model(name, mu, input_data, parameters, model, root_area, root_sex, root_year, zero_re=True):
     """ Generate PyMC objects covariate adjusted version of mu
 
@@ -67,7 +71,8 @@ def mean_covariate_model(name, mu, input_data, parameters, model, root_area, roo
     U = pd.DataFrame(np.zeros((n, p_U)), columns=model.hierarchy.nodes(), index=input_data.index)
     for i, row in input_data.T.iteritems():
         if row['area'] not in model.hierarchy:
-            print('WARNING: "%s" not in model hierarchy, skipping random effects for this observation' % row['area'])
+            print(
+                'WARNING: "%s" not in model hierarchy, skipping random effects for this observation' % row['area'])
             continue
 
         for level, node in enumerate(nx.shortest_path(model.hierarchy, 'all', input_data.ix[i, 'area'])):
@@ -76,9 +81,9 @@ def mean_covariate_model(name, mu, input_data, parameters, model, root_area, roo
 
     for n2 in model.hierarchy.nodes():
         for level, node in enumerate(nx.shortest_path(model.hierarchy, 'all', n2)):
-                        model.hierarchy.node[node]['level'] = level
+            model.hierarchy.node[node]['level'] = level
 
-    #U = U.select(lambda col: U[col].std() > 1.e-5, axis=1)  # drop constant columns
+    # U = U.select(lambda col: U[col].std() > 1.e-5, axis=1)  # drop constant columns
     if len(U.index) == 0:
         U = pd.DataFrame()
     else:
@@ -90,21 +95,19 @@ def mean_covariate_model(name, mu, input_data, parameters, model, root_area, roo
         U = U[keep_cols]
 
         # U = U.select(lambda col: (U[col].max() > 0) and (model.hierarchy.node[col].get('level') > model.hierarchy.node[root_area]['level']), axis=1)  # drop columns with only zeros and which are for higher levels in hierarchy
-        #U = U.select(lambda col: model.hierarchy.node[col].get('level') <= 2, axis=1)  # drop country-level REs
+        # U = U.select(lambda col: model.hierarchy.node[col].get('level') <= 2, axis=1)  # drop country-level REs
         #U = U.drop(['super-region_0', 'north_america_high_income', 'USA'], 1)
 
         #U = U.drop(['super-region_0', 'north_america_high_income'], 1)
         #U = U.drop(U.columns, 1)
 
-
-        ## drop random effects with less than 1 observation or with all observations set to 1, unless they have an informative prior
+        # drop random effects with less than 1 observation or with all observations set to 1, unless they have an informative prior
         keep = []
         if 'random_effects' in parameters:
             for re in parameters['random_effects']:
                 if parameters['random_effects'][re].get('dist') == 'Constant':
                     keep.append(re)
         U = U.select(lambda col: 1 <= U[col].sum() < len(U[col]) or col in keep, axis=1)
-
 
     U_shift = pd.Series(0., index=U.columns)
     for level, node in enumerate(nx.shortest_path(model.hierarchy, 'all', root_area)):
@@ -114,14 +117,14 @@ def mean_covariate_model(name, mu, input_data, parameters, model, root_area, roo
 
     sigma_alpha = []
     for i in range(5):  # max depth of hierarchy is 5
-        effect = 'sigma_alpha_%s_%d'%(name,i)
+        effect = 'sigma_alpha_%s_%d' % (name, i)
         if 'random_effects' in parameters and effect in parameters['random_effects']:
             prior = parameters['random_effects'][effect]
             print('using stored RE hyperprior for', effect, prior)
             sigma_alpha.append(MyTruncatedNormal(effect, prior['mu'], np.maximum(prior['sigma'], .001)**-2,
-                                                  min(prior['mu'], prior['lower']),
-                                                  max(prior['mu'], prior['upper']),
-                                                  value=prior['mu']))
+                                                 min(prior['mu'], prior['lower']),
+                                                 max(prior['mu'], prior['upper']),
+                                                 value=prior['mu']))
         else:
             sigma_alpha.append(MyTruncatedNormal(effect, .05, .03**-2, .05, .5, value=.1))
 
@@ -132,13 +135,13 @@ def mean_covariate_model(name, mu, input_data, parameters, model, root_area, roo
         tau_alpha_index = []
         for alpha_name in U.columns:
             tau_alpha_index.append(model.hierarchy.node[alpha_name]['level'])
-        tau_alpha_index=np.array(tau_alpha_index, dtype=int)
+        tau_alpha_index = np.array(tau_alpha_index, dtype=int)
 
         tau_alpha_for_alpha = [sigma_alpha[i]**-2 for i in tau_alpha_index]
 
         alpha = []
         for i, tau_alpha_i in enumerate(tau_alpha_for_alpha):
-            effect = 'alpha_%s_%s'%(name, U.columns[i])
+            effect = 'alpha_%s_%s' % (name, U.columns[i])
             if 'random_effects' in parameters and U.columns[i] in parameters['random_effects']:
                 prior = parameters['random_effects'][U.columns[i]]
                 print('using stored RE for', effect, prior)
@@ -158,7 +161,7 @@ def mean_covariate_model(name, mu, input_data, parameters, model, root_area, roo
         # sigma for "constant" alpha
         const_alpha_sigma = []
         for i, tau_alpha_i in enumerate(tau_alpha_for_alpha):
-            effect = 'alpha_%s_%s'%(name, U.columns[i])
+            effect = 'alpha_%s_%s' % (name, U.columns[i])
             if 'random_effects' in parameters and U.columns[i] in parameters['random_effects']:
                 prior = parameters['random_effects'][U.columns[i]]
                 if prior['dist'] == 'Constant':
@@ -169,7 +172,7 @@ def mean_covariate_model(name, mu, input_data, parameters, model, root_area, roo
                 const_alpha_sigma.append(np.nan)
 
         if zero_re:
-            column_map = dict([(n,i) for i,n in enumerate(U.columns)])
+            column_map = dict([(n, i) for i, n in enumerate(U.columns)])
             # change one stoch from each set of siblings in area hierarchy to a 'sum to zero' deterministic
             for parent in model.hierarchy:
                 node_names = model.hierarchy.successors(parent)
@@ -182,11 +185,11 @@ def mean_covariate_model(name, mu, input_data, parameters, model, root_area, roo
                     if parameters.get('random_effects', {}).get(U.columns[i], {}).get('dist') == 'Constant':
                         continue
 
-                    alpha[i] = mc.Lambda('alpha_det_%s_%d'%(name, i),
-                                                lambda other_alphas_at_this_level=[alpha[n] for n in nodes[1:]]: -sum(other_alphas_at_this_level))
+                    alpha[i] = mc.Lambda('alpha_det_%s_%d' % (name, i),
+                                         lambda other_alphas_at_this_level=[alpha[n] for n in nodes[1:]]: -sum(other_alphas_at_this_level))
 
                     if isinstance(old_alpha_i, mc.Stochastic):
-                        @mc.potential(name='alpha_pot_%s_%s'%(name, U.columns[i]))
+                        @mc.potential(name='alpha_pot_%s_%s' % (name, U.columns[i]))
                         def alpha_potential(alpha=alpha[i], mu=old_alpha_i.parents['mu'], tau=old_alpha_i.parents['tau']):
                             return mc.normal_like(alpha, mu, tau)
                         alpha_potentials.append(alpha_potential)
@@ -203,18 +206,21 @@ def mean_covariate_model(name, mu, input_data, parameters, model, root_area, roo
     if len(X.columns) > 0:
         # shift columns to have zero for root covariate
         try:
-            output_template = model.output_template.groupby(['area', 'sex', 'year']).mean()  # TODO: change to .first(), but that doesn't work with old pandas
+            # TODO: change to .first(), but that doesn't work with old pandas
+            output_template = model.output_template.groupby(['area', 'sex', 'year']).mean()
         except pd.core.groupby.DataError:
             output_template = model.output_template.groupby(['area', 'sex', 'year']).first()
         covs = output_template.filter(list(X.columns) + ['pop'])
         if len(covs.columns) > 1:
-            leaves = [n for n in nx.traversal.bfs_tree(model.hierarchy, root_area) if model.hierarchy.successors(n) == []]
+            leaves = [n for n in nx.traversal.bfs_tree(
+                model.hierarchy, root_area) if model.hierarchy.successors(n) == []]
             if len(leaves) == 0:
                 # networkx returns an empty list when the bfs tree is a single node
                 leaves = [root_area]
 
             if root_sex == 'total' and root_year == 'all':  # special case for all years and sexes
-                covs = covs.reset_index().drop(['year', 'sex'], axis=1).groupby('area').mean()  # TODO: change to .reset_index(), but that doesn't work with old pandas
+                # TODO: change to .reset_index(), but that doesn't work with old pandas
+                covs = covs.reset_index().drop(['year', 'sex'], axis=1).groupby('area').mean()
                 leaf_covs = covs.ix[leaves]
             elif root_sex == 'total':
                 raise Exception('root_sex == total, root_year != all is Not Yet Implemented')
@@ -225,25 +231,29 @@ def mean_covariate_model(name, mu, input_data, parameters, model, root_area, roo
 
             for cov in covs:
                 if cov != 'pop':
-                    X_shift[cov] = (leaf_covs[cov] * leaf_covs['pop']).sum() / leaf_covs['pop'].sum()
+                    X_shift[cov] = (leaf_covs[cov] * leaf_covs['pop']
+                                    ).sum() / leaf_covs['pop'].sum()
 
         if 'x_sex' in X.columns:
             X_shift['x_sex'] = sex_value[root_sex]
 
         X = X - X_shift
 
-        assert not np.any(np.isnan(np.array(X, dtype=float))), 'matrix should have no missing values'
+        assert not np.any(np.isnan(np.array(X, dtype=float))
+                          ), 'matrix should have no missing values'
 
         beta = []
         for i, effect in enumerate(X.columns):
-            name_i = 'beta_%s_%s'%(name, effect)
+            name_i = 'beta_%s_%s' % (name, effect)
             if 'fixed_effects' in parameters and effect in parameters['fixed_effects']:
                 prior = parameters['fixed_effects'][effect]
                 print('using stored FE for', name_i, effect, prior)
                 if prior['dist'] == 'TruncatedNormal':
-                    beta.append(MyTruncatedNormal(name_i, mu=float(prior['mu']), tau=np.maximum(prior['sigma'], .001)**-2, a=prior['lower'], b=prior['upper'], value=.5*(prior['lower']+prior['upper'])))
+                    beta.append(MyTruncatedNormal(name_i, mu=float(prior['mu']), tau=np.maximum(
+                        prior['sigma'], .001)**-2, a=prior['lower'], b=prior['upper'], value=.5*(prior['lower']+prior['upper'])))
                 elif prior['dist'] == 'Normal':
-                    beta.append(mc.Normal(name_i, mu=float(prior['mu']), tau=np.maximum(prior['sigma'], .001)**-2, value=float(prior['mu'])))
+                    beta.append(mc.Normal(name_i, mu=float(prior['mu']), tau=np.maximum(
+                        prior['sigma'], .001)**-2, value=float(prior['mu'])))
                 elif prior['dist'] == 'Constant':
                     beta.append(float(prior['mu']))
                 else:
@@ -254,7 +264,7 @@ def mean_covariate_model(name, mu, input_data, parameters, model, root_area, roo
         # sigma for "constant" beta
         const_beta_sigma = []
         for i, effect in enumerate(X.columns):
-            name_i = 'beta_%s_%s'%(name, effect)
+            name_i = 'beta_%s_%s' % (name, effect)
             if 'fixed_effects' in parameters and effect in parameters['fixed_effects']:
                 prior = parameters['fixed_effects'][effect]
                 if prior['dist'] == 'Constant':
@@ -264,36 +274,34 @@ def mean_covariate_model(name, mu, input_data, parameters, model, root_area, roo
             else:
                 const_beta_sigma.append(np.nan)
 
-    @mc.deterministic(name='pi_%s'%name)
+    @mc.deterministic(name='pi_%s' % name)
     def pi(mu=mu, U=np.array(U, dtype=float), alpha=alpha, X=np.array(X, dtype=float), beta=beta):
         return mu * np.exp(np.dot(U, [float(x) for x in alpha]) + np.dot(X, [float(x) for x in beta]))
 
     return dict(pi=pi, U=U, U_shift=U_shift, sigma_alpha=sigma_alpha, alpha=alpha, alpha_potentials=alpha_potentials, X=X, X_shift=X_shift, beta=beta, hierarchy=model.hierarchy, const_alpha_sigma=const_alpha_sigma, const_beta_sigma=const_beta_sigma)
 
 
-
 def dispersion_covariate_model(name, input_data, delta_lb, delta_ub):
     lower = np.log(delta_lb)
     upper = np.log(delta_ub)
-    eta=mc.Uniform('eta_%s'%name, lower=lower, upper=upper, value=.5*(lower+upper))
+    eta = mc.Uniform('eta_%s' % name, lower=lower, upper=upper, value=.5*(lower+upper))
 
     Z = input_data.select(lambda col: col.startswith('z_'), axis=1)
     Z = Z.select(lambda col: Z[col].std() > 0, 1)  # drop blank cols
     if len(Z.columns) > 0:
-        zeta = mc.Normal('zeta_%s'%name, 0, .25**-2, value=np.zeros(len(Z.columns)))
+        zeta = mc.Normal('zeta_%s' % name, 0, .25**-2, value=np.zeros(len(Z.columns)))
 
-        @mc.deterministic(name='delta_%s'%name)
+        @mc.deterministic(name='delta_%s' % name)
         def delta(eta=eta, zeta=zeta, Z=Z.__array__()):
             return np.exp(eta + np.dot(Z, zeta))
 
         return dict(eta=eta, Z=Z, zeta=zeta, delta=delta)
 
     else:
-        @mc.deterministic(name='delta_%s'%name)
+        @mc.deterministic(name='delta_%s' % name)
         def delta(eta=eta):
             return np.exp(eta) * np.ones_like(input_data.index)
         return dict(eta=eta, delta=delta)
-
 
 
 def predict_for(model, parameters,
@@ -352,13 +360,12 @@ def predict_for(model, parameters,
                 alpha_trace.append(n.trace())
             else:
                 # uncertainty of constant alpha incorporated here
-                sigma = max(sigma, 1.e-9) # make sure sigma is non-zero
+                sigma = max(sigma, 1.e-9)  # make sure sigma is non-zero
                 assert not np.isnan(sigma)
                 alpha_trace.append(mc.rnormal(float(n), sigma**-2, size=len_trace))
         alpha_trace = np.vstack(alpha_trace).T
     else:
         alpha_trace = np.array([])
-
 
     # compile array of draws from posterior distribution of beta (fixed effect covariate values)
     # a row for each draw from the posterior distribution
@@ -387,7 +394,7 @@ def predict_for(model, parameters,
                 beta_trace.append(n.trace())
             else:
                 # uncertainty of constant beta incorporated here
-                sigma = max(sigma, 1.e-9) # make sure sigma is non-zero
+                sigma = max(sigma, 1.e-9)  # make sure sigma is non-zero
                 assert not np.isnan(sigma)
                 beta_trace.append(mc.rnormal(float(n), sigma**-2., size=len_trace))
         beta_trace = np.vstack(beta_trace).T
@@ -397,11 +404,11 @@ def predict_for(model, parameters,
     # the prediction for the requested area is produced by aggregating predictions for all of the childred
     # of that area in the area_hierarchy (a networkx.DiGraph)
 
-    leaves = [n for n in nx.traversal.bfs_tree(area_hierarchy, area) if area_hierarchy.successors(n) == []]
+    leaves = [n for n in nx.traversal.bfs_tree(
+        area_hierarchy, area) if area_hierarchy.successors(n) == []]
     if len(leaves) == 0:
         # networkx returns an empty list when the bfs tree is a single node
         leaves = [area]
-
 
     # initialize covariate_shift and total_population
     covariate_shift = np.zeros(len_trace)
@@ -419,9 +426,11 @@ def predict_for(model, parameters,
         covs = output_template.filter(vars['X'].columns)
         if 'x_sex' in vars['X'].columns:
             covs['x_sex'] = sex_value[sex]
-        assert np.all(covs.columns == vars['X_shift'].index), 'covariate columns and unshift index should match up'
+        assert np.all(covs.columns ==
+                      vars['X_shift'].index), 'covariate columns and unshift index should match up'
         for x_i in vars['X_shift'].index:
-            covs[x_i] -= vars['X_shift'][x_i] # shift covariates so that the root node has X_ar,sr,yr == 0
+            # shift covariates so that the root node has X_ar,sr,yr == 0
+            covs[x_i] -= vars['X_shift'][x_i]
     else:
         covs = pd.DataFrame(index=output_template.index)
 
@@ -442,12 +451,12 @@ def predict_for(model, parameters,
     for l in leaves:
         log_shift_l = np.zeros(len_trace)
         if len(U_l.columns) > 0:
-            U_l.ix[0,:] = 0.
+            U_l.ix[0, :] = 0.
 
         root_to_leaf = nx.shortest_path(area_hierarchy, root_area, l)
         for node in root_to_leaf[1:]:
             if node not in U_l.columns:
-                ## Add a columns U_l[node] = rnormal(0, appropriate_tau)
+                # Add a columns U_l[node] = rnormal(0, appropriate_tau)
                 level = len(nx.shortest_path(area_hierarchy, 'all', node))-1
                 if 'sigma_alpha' in vars:
                     tau_l = vars['sigma_alpha'][level].trace()**-2
@@ -462,7 +471,7 @@ def predict_for(model, parameters,
                 if parameters.get('random_effects', {}).get(node, {}).get('dist') == 'Constant':
                     mu = parameters['random_effects'][node]['mu']
                     sigma = parameters['random_effects'][node]['sigma']
-                    sigma = max(sigma, 1.e-9) # make sure sigma is non-zero
+                    sigma = max(sigma, 1.e-9)  # make sure sigma is non-zero
 
                     alpha_node = mc.rnormal(mu,
                                             sigma**-2,
@@ -498,8 +507,8 @@ def predict_for(model, parameters,
         if population_weighted:
             # combine in linear-space with population weights
             shift_l = np.exp(log_shift_l)
-            covariate_shift += shift_l * output_template['pop'][l,sex,year]
-            total_population += output_template['pop'][l,sex,year]
+            covariate_shift += shift_l * output_template['pop'][l, sex, year]
+            total_population += output_template['pop'][l, sex, year]
         else:
             # combine in log-space without weights
             covariate_shift += log_shift_l

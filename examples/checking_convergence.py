@@ -57,7 +57,7 @@ def new_model(data):
     dm = dismod_mr.data.ModelData()
 
     # set simple model parameters, for decent, fast computation
-    dm.set_knots('p', [0,100])
+    dm.set_knots('p', [0, 100])
     dm.set_level_bounds('p', lower=0, upper=1)
     dm.set_level_value('p', age_before=0, age_after=100, value=0)
     dm.set_heterogeneity('p', value='Slightly')
@@ -73,6 +73,7 @@ def new_model(data):
 # # Fit the model with too few iterations of MCMC
 
 # <codecell>
+
 
 dm1 = new_model(data)
 dm1.setup_model('p', rate_model='neg_binom')
