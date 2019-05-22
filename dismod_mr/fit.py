@@ -24,6 +24,7 @@ import time
 import numpy as np
 import pymc as mc
 import networkx as nx
+import pdb
 
 
 def asr(model, data_type, iter=2000, burn=1000, thin=1, tune_interval=100, verbose=False):

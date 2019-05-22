@@ -13,8 +13,6 @@ import numpy as np
 import pandas as pd
 import dismod_mr
 import pymc as pm
-import matplotlib.pyplot as plt
-import seaborn as sns
 import pdb
 # %matplotlib inline
 
@@ -88,77 +86,77 @@ dm1.plot()
 
 dm2 = new_model(data)
 dm2.setup_model('p', rate_model='neg_binom')
-%time dm2.fit(how='mcmc', iter=10, burn=0, thin=1)
-dm2.plot()
-
-# <codecell>
-
-dm1.vars['p']['gamma'][1].trace().mean()
-
-# <codecell>
-
-dm2.vars['p']['gamma'][1].trace().mean()
-
-# <markdowncell>
-
-# # Fit with more MCMC iterations
-
-# <codecell>
-
-dm1 = new_model(data)
-dm1.setup_model('p', rate_model='neg_binom')
-%time dm1.fit(how='mcmc', iter=10000, burn=5000, thin=5)
-
-# <codecell>
-
-dm2 = new_model(data)
-dm2.setup_model('p', rate_model='neg_binom')
-%time dm2.fit(how='mcmc', iter=10000, burn=5000, thin=5)
-
-# <codecell>
-
-dm1.vars['p']['gamma'][1].stats()
-
-# <codecell>
-
-dm2.vars['p']['gamma'][1].stats()
-
-# <codecell>
-
-dismod_mr.plot.plot_trace(dm1)
-
-# <codecell>
-
-dismod_mr.plot.plot_acorr(dm1)
-
-# <markdowncell>
-
-# # Running multiple chains
+# %time dm2.fit(how='mcmc', iter=10, burn=0, thin=1)
+# dm2.plot()
 #
-# It is simple to run multiple chains sequentially in DisMod-MR, although I worry that this gives a false sense of security about the convergence.
-
-# <codecell>
-
-# setup a model and run the chain once
-
-dm = new_model(data)
-dm.setup_model('p', rate_model='neg_binom')
-%time dm.fit(how='mcmc', iter=2000, burn=1000, thin=1)
-
-# <codecell>
-
-# to run it more times, use the sample method of the dm.mcmc object
-# use the same iter/burn/thin settings for future convenience
-
-for i in range(4):
-    dm.mcmc.sample(iter=2000, burn=1000, thin=1)
-
-# <codecell>
-
-# calculate Gelman-Rubin statistic for all model variables
-R_hat = pm.gelman_rubin(dm.mcmc)
-
-# examine for gamma_p_100
-R_hat['gamma_p_100']
-
-# <codecell>
+# # <codecell>
+#
+# dm1.vars['p']['gamma'][1].trace().mean()
+#
+# # <codecell>
+#
+# dm2.vars['p']['gamma'][1].trace().mean()
+#
+# # <markdowncell>
+#
+# # # Fit with more MCMC iterations
+#
+# # <codecell>
+#
+# dm1 = new_model(data)
+# dm1.setup_model('p', rate_model='neg_binom')
+# %time dm1.fit(how='mcmc', iter=10000, burn=5000, thin=5)
+#
+# # <codecell>
+#
+# dm2 = new_model(data)
+# dm2.setup_model('p', rate_model='neg_binom')
+# %time dm2.fit(how='mcmc', iter=10000, burn=5000, thin=5)
+#
+# # <codecell>
+#
+# dm1.vars['p']['gamma'][1].stats()
+#
+# # <codecell>
+#
+# dm2.vars['p']['gamma'][1].stats()
+#
+# # <codecell>
+#
+# dismod_mr.plot.plot_trace(dm1)
+#
+# # <codecell>
+#
+# dismod_mr.plot.plot_acorr(dm1)
+#
+# # <markdowncell>
+#
+# # # Running multiple chains
+# #
+# # It is simple to run multiple chains sequentially in DisMod-MR, although I worry that this gives a false sense of security about the convergence.
+#
+# # <codecell>
+#
+# # setup a model and run the chain once
+#
+# dm = new_model(data)
+# dm.setup_model('p', rate_model='neg_binom')
+# %time dm.fit(how='mcmc', iter=2000, burn=1000, thin=1)
+#
+# # <codecell>
+#
+# # to run it more times, use the sample method of the dm.mcmc object
+# # use the same iter/burn/thin settings for future convenience
+#
+# for i in range(4):
+#     dm.mcmc.sample(iter=2000, burn=1000, thin=1)
+#
+# # <codecell>
+#
+# # calculate Gelman-Rubin statistic for all model variables
+# R_hat = pm.gelman_rubin(dm.mcmc)
+#
+# # examine for gamma_p_100
+# R_hat['gamma_p_100']
+#
+# # <codecell>

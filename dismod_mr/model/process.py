@@ -22,6 +22,7 @@
 import numpy as np
 import pymc as mc
 import scipy.interpolate
+import pdb
 
 
 def age_specific_rate(model, data_type, reference_area='all', reference_sex='total', reference_year='all',
@@ -49,6 +50,7 @@ def age_specific_rate(model, data_type, reference_area='all', reference_sex='tot
       - Returns dict of PyMC objects, including 'pi', the covariate adjusted predicted values for each row of data
 
     """
+
     name = data_type
     import dismod_mr
     result = dismod_mr.data.ModelVars()
@@ -61,8 +63,10 @@ def age_specific_rate(model, data_type, reference_area='all', reference_sex='tot
 
     ages = np.array(model.parameters['ages'])
     data = model.get_data(data_type)
+
     if lower_bound:
         lb_data = model.get_data(lower_bound)
+
     parameters = model.parameters.get(data_type, {})
     area_hierarchy = model.hierarchy
 

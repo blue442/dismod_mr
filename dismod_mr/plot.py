@@ -24,6 +24,7 @@ import matplotlib.pyplot as plt
 import pymc as mc
 import pandas
 import networkx as nx
+import pdb
 
 colors = ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f0', '#ffff33']
 
@@ -336,6 +337,7 @@ def effects(model, data_type, figsize=(22, 17)):
                     else:
                         effect_str += 'exp(%s) = %.3f -\n' % (eta.__name__, np.exp(eta.value))
                 plt.text(r, t, effect_str, va='top', ha='right')
+    plt.show()
 
 
 def plot_hists(vars):

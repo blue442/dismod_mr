@@ -96,10 +96,10 @@ def mean_covariate_model(name, mu, input_data, parameters, model, root_area, roo
 
         # U = U.select(lambda col: (U[col].max() > 0) and (model.hierarchy.node[col].get('level') > model.hierarchy.node[root_area]['level']), axis=1)  # drop columns with only zeros and which are for higher levels in hierarchy
         # U = U.select(lambda col: model.hierarchy.node[col].get('level') <= 2, axis=1)  # drop country-level REs
-        #U = U.drop(['super-region_0', 'north_america_high_income', 'USA'], 1)
+        # U = U.drop(['super-region_0', 'north_america_high_income', 'USA'], 1)
 
-        #U = U.drop(['super-region_0', 'north_america_high_income'], 1)
-        #U = U.drop(U.columns, 1)
+        # U = U.drop(['super-region_0', 'north_america_high_income'], 1)
+        # U = U.drop(U.columns, 1)
 
         # drop random effects with less than 1 observation or with all observations set to 1, unless they have an informative prior
         keep = []
@@ -107,7 +107,12 @@ def mean_covariate_model(name, mu, input_data, parameters, model, root_area, roo
             for re in parameters['random_effects']:
                 if parameters['random_effects'][re].get('dist') == 'Constant':
                     keep.append(re)
-        U = U.select(lambda col: 1 <= U[col].sum() < len(U[col]) or col in keep, axis=1)
+
+        for i in U.sum(axis=0)[U.sum(axis=0) >= 1].index.tolist():
+            keep.append(i)
+        U = U.loc[:, keep]
+
+        # U = U.select(lambda col: 1 <= U[col].sum() < len(U[col]) or col in keep, axis=1)
 
     U_shift = pd.Series(0., index=U.columns)
     for level, node in enumerate(nx.shortest_path(model.hierarchy, 'all', root_area)):
@@ -195,7 +200,8 @@ def mean_covariate_model(name, mu, input_data, parameters, model, root_area, roo
                         alpha_potentials.append(alpha_potential)
 
     # make X and beta
-    X = input_data.select(lambda col: col.startswith('x_'), axis=1)
+    X = input_data.loc[:, [i for i in input_data.columns.tolist() if i.startswith('x_')]]
+    # X = input_data.select(lambda col: col.startswith('x_'), axis=1)
 
     # add sex as a fixed effect (TODO: decide if this should be in data.py, when loading gbd model)
     X['x_sex'] = [sex_value[row['sex']] for i, row in input_data.T.iteritems()]
@@ -208,8 +214,10 @@ def mean_covariate_model(name, mu, input_data, parameters, model, root_area, roo
         try:
             # TODO: change to .first(), but that doesn't work with old pandas
             output_template = model.output_template.groupby(['area', 'sex', 'year']).mean()
-        except pd.core.groupby.DataError:
+        # except pd.core.groupby.DataError:
+        except:
             output_template = model.output_template.groupby(['area', 'sex', 'year']).first()
+
         covs = output_template.filter(list(X.columns) + ['pop'])
         if len(covs.columns) > 1:
             leaves = [n for n in nx.traversal.bfs_tree(
@@ -286,8 +294,10 @@ def dispersion_covariate_model(name, input_data, delta_lb, delta_ub):
     upper = np.log(delta_ub)
     eta = mc.Uniform('eta_%s' % name, lower=lower, upper=upper, value=.5*(lower+upper))
 
-    Z = input_data.select(lambda col: col.startswith('z_'), axis=1)
-    Z = Z.select(lambda col: Z[col].std() > 0, 1)  # drop blank cols
+    Z = input_data.loc[:, [i for i in input_data.columns.tolist() if i.startswith('z_')]]
+    # Z = input_data.select(lambda col: col.startswith('z_'), axis=1)
+    Z = Z.dropna(axis=1, how='all')
+    # Z = Z.select(lambda col: Z[col].std() > 0, 1)  # drop blank cols
     if len(Z.columns) > 0:
         zeta = mc.Normal('zeta_%s' % name, 0, .25**-2, value=np.zeros(len(Z.columns)))
 

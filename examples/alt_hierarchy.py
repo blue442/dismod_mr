@@ -14,10 +14,11 @@
 import random
 import dismod_mr
 import pandas as pd
+import numpy as np
 
 # <codecell>
 
-df = pd.read_csv('hierarchy.csv')
+df = pd.read_csv('./examples/hierarchy.csv')
 
 # <codecell>
 
@@ -35,11 +36,11 @@ df.head()
 n = 100
 
 dm = dismod_mr.data.ModelData()
-inp = pd.DataFrame(columns=dm.input_data, index=range(n))
+inp = pd.DataFrame(columns=dm.input_data.columns, index=range(n))
 
 # data type, value, and uncertainty
 inp.data_type = 'p'
-inp.value = .5 + .1*randn(n)
+inp.value = .5 + .1*np.random.randn(n)
 inp.effective_sample_size = 1000.
 
 # geographic information (to be used for random effects)
@@ -49,9 +50,9 @@ inp.sex = 'total'
 inp.age_start = 50
 inp.age_end = 50
 
-inp.standard_error = nan
-inp.upper_ci = nan
-inp.lower_ci = nan
+inp.standard_error = np.nan
+inp.upper_ci = np.nan
+inp.lower_ci = np.nan
 
 # put data in model
 dm.input_data = inp
@@ -77,12 +78,12 @@ for p in df.Prefecture:
 
 # <codecell>
 
-dm.vars = dismod_mr.model.asr(dm, 'p', rate_type='neg_binom')
-%time dismod_mr.fit.asr(dm, 'p', iter=10000, burn=5000, thin=5)
+dm.vars = dismod_mr.model.asr(model=dm, data_type='p', rate_type='neg_binom')
+%time dismod_mr.fit.asr(model=dm, data_type='p', iter=10000, burn=5000, thin=5)
 
 # <codecell>
 
-dismod_mr.plot.effects(dm, 'p', figsize=(18, 10))
+dismod_mr.plot.effects(model=dm, data_type='p', figsize=(18, 10))
 
 # <markdowncell>
 
@@ -103,12 +104,12 @@ for i, row in df.iterrows():
 
 # <codecell>
 
-dm.vars = dismod_mr.model.asr(dm, 'p', rate_type='neg_binom')
-%time dismod_mr.fit.asr(dm, 'p', iter=10000, burn=5000, thin=5)
+dm.vars = dismod_mr.model.asr(model=dm, data_type='p', rate_type='neg_binom')
+%time dismod_mr.fit.asr(model=dm, data_type='p', iter=10000, burn=5000, thin=5)
 
 # <codecell>
 
-dismod_mr.plot.effects(dm, 'p', figsize=(18, 14))
+dismod_mr.plot.effects(model=dm, data_type='p', figsize=(18, 14))
 
 # <markdowncell>
 
@@ -116,4 +117,4 @@ dismod_mr.plot.effects(dm, 'p', figsize=(18, 14))
 
 # <codecell>
 
-!date
+# !date
