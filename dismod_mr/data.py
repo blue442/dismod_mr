@@ -280,6 +280,7 @@ class ModelData:
                     plt.plot(x, pred.mean(0), linewidth=3, color=plot.colors[0])
 
             plt.axis(xmin=-5, xmax=105)
+        plt.show()
 
     def keep(self, areas=['all'], sexes=['male', 'female', 'total'], start_year=-pl.inf, end_year=pl.inf):
         """ Modify model to feature only desired area/sex/year(s)

@@ -370,6 +370,7 @@ def plot_acorr(model):
 
     plot_viz_of_stochs(model.vars, acorr, (12, 9))
     plt.subplots_adjust(0, 0, 1, 1, 0, 0)
+    plt.show()
 
 
 def plot_trace(model):
@@ -379,6 +380,7 @@ def plot_trace(model):
 
     plot_viz_of_stochs(model.vars, show_trace, (12, 9))
     plt.subplots_adjust(.05, .01, .99, .99, .5, .5)
+    plt.show()
 
 
 def plot_viz_of_stochs(vars, viz_func, figsize=(8, 6)):
