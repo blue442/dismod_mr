@@ -283,6 +283,7 @@ def find_consistent_spline_initial_vals(vars, method, tol, verbose):
 
 def find_asr_initial_vals(vars, method, tol, verbose):
     for outer_reps in range(3):
+        pdb.set_trace()
         find_spline_initial_vals(vars, method, tol, verbose)
         find_re_initial_vals(vars, method, tol, verbose)
         find_spline_initial_vals(vars, method, tol, verbose)
@@ -294,19 +295,22 @@ def find_asr_initial_vals(vars, method, tol, verbose):
 
 def find_spline_initial_vals(vars, method, tol, verbose):
     # generate initial value by fitting knots sequentially
-    vars_to_fit = [vars.get('p_obs'), vars.get('pi_sim'), vars.get('smooth_gamma'), vars.get('parent_similarity'),
-                   vars.get('mu_sim'), vars.get('mu_age_derivative_potential'), vars.get('covariate_constraint')]
+    vars_to_fit = [vars.get('p_obs'), vars.get('pi_sim'), vars.get('smooth_gamma'),
+                   vars.get('parent_similarity'), vars.get('mu_sim'), vars.get('mu_age_derivative_potential'), vars.get('covariate_constraint')]
 
     for i, n in enumerate(vars['gamma']):
         if verbose:
             print('fitting first %d knots of %d' % (i+1, len(vars['gamma'])))
         vars_to_fit.append(n)
+
         mc.MAP(vars_to_fit).fit(method=method, tol=tol, verbose=verbose)
         if verbose:
             print_mare(vars)
 
 
 def find_re_initial_vals(vars, method, tol, verbose):
+    pdb.set_trace()
+
     if 'hierarchy' not in vars:
         return
 
@@ -325,6 +329,7 @@ def find_re_initial_vals(vars, method, tol, verbose):
                 re_vars = [vars['alpha'][col_map[n]]
                            for n in list(successors) + [p] if n in vars['U']]
                 vars_to_fit += re_vars
+
                 if len(re_vars) > 0:
                     mc.MAP(vars_to_fit).fit(method=method, tol=tol, verbose=verbose)
 

@@ -40,7 +40,7 @@ predict_year = 2005
 
 # <codecell>
 
-model_path = 'hcv_replication/'
+model_path = './examples/hcv_replication'
 dm = dismod_mr.data.load(model_path)
 
 if predict_year == 2005:
@@ -48,7 +48,7 @@ if predict_year == 2005:
 elif predict_year == 1990:
     dm.keep(areas=[predict_region], sexes=['total', predict_sex], end_year=1997)
 else:
-    raise Error, 'predict_year must equal 1990 or 2005'
+    raise Exception('...predict_year must equal 1990 or 2005')
 
 # <codecell>
 

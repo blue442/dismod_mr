@@ -42,6 +42,8 @@
 import dismod_mr
 import pymc as mc
 import pandas as pd
+import matplotlib.pyplot as plt
+
 
 # <markdowncell>
 
@@ -56,7 +58,7 @@ import pandas as pd
 
 # <codecell>
 
-model = dismod_mr.data.load('pd_sim_data')
+model = dismod_mr.data.load('./examples/pd_sim_data/')
 model.keep(areas=['europe_western'], sexes=['female', 'total'])
 
 # <markdowncell>
@@ -66,7 +68,7 @@ model.keep(areas=['europe_western'], sexes=['female', 'total'])
 # <codecell>
 
 summary = model.input_data.groupby('data_type')['value'].describe()
-round_(summary, 3).unstack().sort('count', ascending=False)
+print(round(summary, 3).unstack())
 
 # <markdowncell>
 
@@ -80,7 +82,7 @@ model.get_data('smr').value.mean()
 # <codecell>
 
 groups = model.get_data('p').groupby('area')
-print round_(groups['value'].describe(), 3).unstack().sort('50%', ascending=False)
+print(round(groups['value'].describe(), 3).unstack()['50%'])
 
 # <markdowncell>
 
@@ -95,16 +97,16 @@ for i, c_i in enumerate(countries):
 
 # <codecell>
 
-ax = None
-figure(figsize=(10, 4))
-for i, c_i in enumerate(countries):
-    ax = subplot(1, 2, 1+i, sharey=ax, sharex=ax)
-    dismod_mr.plot.data_bars(c[i])
-    xlabel('Age (years)')
-    ylabel('Prevalence (per 1)')
-    title(c_i)
-axis(ymin=-.001, xmin=-5, xmax=105)
-subplots_adjust(wspace=.3)
+# ax = None
+# fig = plt.figure(figsize=(10, 4))
+# for i, c_i in enumerate(countries):
+#     ax = plt.subplot(1, 2, 1+i, sharey=ax, sharex=ax)
+#     dismod_mr.plot.data_bars(c[i])
+#     plt.xlabel('Age (years)')
+#     plt.ylabel('Prevalence (per 1)')
+#     plt.title(c_i)
+# plt.axis(ymin=-.001, xmin=-5, xmax=105)
+# plt.subplots_adjust(wspace=.3)
 
 # <markdowncell>
 
@@ -129,22 +131,37 @@ subplots_adjust(wspace=.3)
 # <codecell>
 
 # remove fixed effects for this example, I will return to them below
-model.input_data = model.input_data.filter(regex='(?!x_)')
+to_keep = set(model.input_data.keys()) - set(model.input_data.filter(like='x_').keys())
+model.input_data = model.input_data[to_keep]
 
 # <codecell>
 
 model.vars += dismod_mr.model.asr(model, 'p')
-%time dismod_mr.fit.asr(model, 'p')
+# %time dismod_mr.fit.asr(model, 'p')
 
 # <codecell>
 
 # plot age-specific prevalence estimates over data bars
-figure(figsize=(10, 4))
+plt.figure(figsize=(10, 4))
 
 dismod_mr.plot.data_bars(model.get_data('p'), color='grey', label='Simulated PD Data')
-pred = dismod_mr.model.predict_for(model, model.parameters['p'], 'all', 'female', 2005,
-                                   'europe_western', 'female', 2005, 1.,
-                                   model.vars['p'], 0., 1.)    # TODO: simplify this method!
+
+pred = dismod_mr.model.predict_for(model=model, parameters=model.parameters['p'], root_area='all', root_sex='female', root_year=2005,
+                                   area='europe_western', sex='female', year=2005, population_weighted=1., vars=model.vars['p'], lower=0., upper=1.)    # TODO: simplify this method!
+
+
+# parameters = model.parameters['p']
+# root_area = 'all'
+# root_sex = 'female'
+# root_year = 2005,
+# area = 'europe_western'
+# sex = 'female'
+# year = 2005
+# population_weighted = 1.
+# vars = model.vars['p']
+# lower = 0.
+# upper = 1.
+
 
 hpd = mc.utils.hpd(pred, .05)
 

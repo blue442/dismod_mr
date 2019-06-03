@@ -69,6 +69,7 @@ def mean_covariate_model(name, mu, input_data, parameters, model, root_area, roo
     # make U and alpha
     p_U = model.hierarchy.number_of_nodes()  # random effects for area
     U = pd.DataFrame(np.zeros((n, p_U)), columns=model.hierarchy.nodes(), index=input_data.index)
+
     for i, row in input_data.T.iteritems():
         if row['area'] not in model.hierarchy:
             print(
@@ -123,6 +124,7 @@ def mean_covariate_model(name, mu, input_data, parameters, model, root_area, roo
     sigma_alpha = []
     for i in range(5):  # max depth of hierarchy is 5
         effect = 'sigma_alpha_%s_%d' % (name, i)
+
         if 'random_effects' in parameters and effect in parameters['random_effects']:
             prior = parameters['random_effects'][effect]
             print('using stored RE hyperprior for', effect, prior)
@@ -200,12 +202,10 @@ def mean_covariate_model(name, mu, input_data, parameters, model, root_area, roo
                         alpha_potentials.append(alpha_potential)
 
     # make X and beta
-    pdb.set_trace()
     X = input_data.loc[:, [i for i in input_data.columns.tolist() if i.startswith('x_')]]
-    # X = input_data.select(lambda col: col.startswith('x_'), axis=1)
 
     # add sex as a fixed effect (TODO: decide if this should be in data.py, when loading gbd model)
-    X['x_sex'] = [sex_value[row['sex']] for i, row in input_data.T.iteritems()]
+    X['x_sex'] = input_data['sex'].map(sex_value)
 
     beta = np.array([])
     const_beta_sigma = np.array([])
@@ -295,7 +295,6 @@ def dispersion_covariate_model(name, input_data, delta_lb, delta_ub):
     upper = np.log(delta_ub)
     eta = mc.Uniform('eta_%s' % name, lower=lower, upper=upper, value=.5*(lower+upper))
 
-    pdb.set_trace()
     Z = input_data.loc[:, [i for i in input_data.columns.tolist() if i.startswith('z_')]]
     # Z = input_data.select(lambda col: col.startswith('z_'), axis=1)
     Z = Z.dropna(axis=1, how='all')
@@ -345,6 +344,7 @@ def predict_for(model, parameters,
     output_template = model.output_template.copy()
 
     # find number of samples from posterior
+    pdb.set_trace()
     len_trace = len(vars['mu_age'].trace())
 
     # compile array of draws from posterior distribution of alpha (random effect covariate values)

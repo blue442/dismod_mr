@@ -88,10 +88,8 @@ def age_specific_rate(model, data_type, reference_area='all', reference_sex='tot
         smoothing = 0.
 
     if mu_age == None:
-        vars.update(
-            dismod_mr.model.spline.spline(
-                name, ages=ages, knots=knots, smoothing=smoothing, interpolation_method=interpolation_method)
-        )
+        vars.update(dismod_mr.model.spline.spline(name, ages=ages, knots=knots,
+                                                  smoothing=smoothing, interpolation_method=interpolation_method))
     else:
         vars.update(dict(mu_age=mu_age, ages=ages))
 
@@ -103,12 +101,10 @@ def age_specific_rate(model, data_type, reference_area='all', reference_sex='tot
         # setup a hierarchical prior on the simliarity between the
         # consistent estimate here and (inconsistent) estimate for its
         # parent in the areas hierarchy
-        #weight_dict = {'Unusable': 10., 'Slightly': 10., 'Moderately': 1., 'Very': .1}
-        #weight = weight_dict[parameters['heterogeneity']]
-        vars.update(
-            dismod_mr.model.priors.similar('parent_similarity_%s' %
-                                           name, vars['mu_age'], mu_age_parent, sigma_age_parent, 0.)
-        )
+        # weight_dict = {'Unusable': 10., 'Slightly': 10., 'Moderately': 1., 'Very': .1}
+        # weight = weight_dict[parameters['heterogeneity']]
+        vars.update(dismod_mr.model.priors.similar('parent_similarity_%s' %
+                                                   name, vars['mu_age'], mu_age_parent, sigma_age_parent, 0.))
 
         # also use this as the initial value for the age pattern, if it is not already specified
         if mu_age == None:
@@ -123,10 +119,8 @@ def age_specific_rate(model, data_type, reference_area='all', reference_sex='tot
     # TODO: use age pattern appropriate to the rate type
     age_weights = np.ones_like(vars['mu_age'].value)
     if len(data) > 0:
-        vars.update(
-            dismod_mr.model.age_groups.age_standardize_approx(
-                name, age_weights, vars['mu_age'], data['age_start'], data['age_end'], ages)
-        )
+        vars.update(dismod_mr.model.age_groups.age_standardize_approx(
+            name, age_weights, vars['mu_age'], data['age_start'], data['age_end'], ages))
 
         # uncomment the following to effectively remove alleffects
         # if 'random_effects' in parameters:
@@ -138,42 +132,39 @@ def age_specific_rate(model, data_type, reference_area='all', reference_sex='tot
         #        parameters['fixed_effects'][effect] = dict(dist='normal', mu=.0001, sigma=.00001)
 
         if include_covariates:
-            vars.update(
-                dismod_mr.model.covariates.mean_covariate_model(
-                    name, vars['mu_interval'], data, parameters, model, reference_area, reference_sex, reference_year, zero_re=zero_re)
-            )
+            vars.update(dismod_mr.model.covariates.mean_covariate_model(
+                name, vars['mu_interval'], data, parameters, model, reference_area, reference_sex, reference_year, zero_re=zero_re))
         else:
             vars.update({'pi': vars['mu_interval']})
 
         # ensure that all data has uncertainty quantified appropriately
         # first replace all missing se from ci
-        missing_se = np.isnan(data['standard_error']) | (data['standard_error'] < 0)
-        data.loc[data[missing_se].index, 'standard_error'] = (
-            data['upper_ci'][missing_se] - data['lower_ci'][missing_se]) / (2*1.96)
+        missing_se = data[(data['standard_error'].isnull() == True)
+                          | (data['standard_error'] < 0)].index
+        data.loc[missing_se, 'standard_error'] = (
+            data.loc[missing_se, 'upper_ci'] - data.loc[missing_se, 'lower_ci']) / (2*1.96)
 
         # then replace all missing ess with se
-        missing_ess = data[np.isnan(data['effective_sample_size'])].index
-        data.loc[missing_ess, 'effective_sample_size'] = \
-            data.loc[missing_ess, 'value']*(1-data.loc[missing_ess, 'value']) \
-            / data.loc[missing_ess, 'standard_error']**2
+        missing_ess = data[data['effective_sample_size'].isnull() == True].index
+        data.loc[missing_ess, 'effective_sample_size'] = data.loc[missing_ess, 'value'] * \
+            (1 - data.loc[missing_ess, 'value']) / data.loc[missing_ess, 'standard_error']**2
 
         if rate_type == 'neg_binom':
 
             # warn and drop data that doesn't have effective sample size quantified, or is is non-positive
-            missing_ess = np.isnan(data['effective_sample_size']) | (
-                data['effective_sample_size'] < 0)
-            if sum(missing_ess) > 0:
+            missing_ess = data[(data['effective_sample_size'].isnull() == True)
+                               | (data['effective_sample_size'] < 0)].index
+            if len(missing_ess) > 0:
                 print('WARNING: %d rows of %s data has invalid quantification of uncertainty.' %
-                      (sum(missing_ess), name))
-                missing_ess = data[missing_ess].index
+                      (len(missing_ess), name))
                 data.loc[missing_ess, 'effective_sample_size'] = 0.0
 
             # warn and change data where ess is unreasonably huge
-            large_ess = data['effective_sample_size'] >= 1.e10
-            if sum(large_ess) > 0:
+            large_ess = data[data['effective_sample_size'] >= 1.e10].index
+            if len(large_ess) > 0:
                 print('WARNING: %d rows of %s data have effective sample size exceeding 10 billion.' % (
-                    sum(large_ess), name))
-                data['effective_sample_size'][large_ess] = 1.e10
+                    len(large_ess), name))
+                data.loc[large_ess, 'effective_sample_size'] = 1.e10
 
             if 'heterogeneity' in parameters:
                 lower_dict = {'Slightly': 9., 'Moderately': 3., 'Very': 1.}
@@ -196,15 +187,16 @@ def age_specific_rate(model, data_type, reference_area='all', reference_sex='tot
         elif rate_type == 'log_normal':
 
             # warn and drop data that doesn't have effective sample size quantified
-            missing = np.isnan(data['standard_error']) | (data['standard_error'] < 0)
-            if sum(missing) > 0:
+            missing = data[(data['standard_error'].isnull() == True)
+                           | (data['standard_error'] < 0)].index
+            if len(missing) > 0:
                 print('WARNING: %d rows of %s data has no quantification of uncertainty.' %
-                      (sum(missing), name))
-                data['standard_error'][missing] = 1.e6
+                      (len(missing), name))
+                data.loc[missing, 'standard_error'] = 1.e6
 
             # TODO: allow options for alternative priors for sigma
             vars['sigma'] = mc.Uniform('sigma_%s' % name, lower=.0001, upper=1., value=.01)
-            #vars['sigma'] = mc.Exponential('sigma_%s'%name, beta=100., value=.01)
+            # vars['sigma'] = mc.Exponential('sigma_%s'%name, beta=100., value=.01)
             vars.update(
                 dismod_mr.model.likelihood.log_normal(
                     name, vars['pi'], vars['sigma'], data['value'], data['standard_error'])
@@ -212,54 +204,59 @@ def age_specific_rate(model, data_type, reference_area='all', reference_sex='tot
         elif rate_type == 'normal':
 
             # warn and drop data that doesn't have standard error quantified
-            missing = np.isnan(data['standard_error']) | (data['standard_error'] < 0)
-            if sum(missing) > 0:
+            missing = data[(data['standard_error'].isnull() == True)
+                           | (data['standard_error'] < 0)].index
+            if len(missing) > 0:
                 print('WARNING: %d rows of %s data has no quantification of uncertainty.' %
-                      (sum(missing), name))
-                data['standard_error'][missing] = 1.e6
+                      (len(missing), name))
+                data.loc[missing, 'standard_error'] = 1.e6
 
             vars['sigma'] = mc.Uniform('sigma_%s' % name, lower=.0001, upper=.1, value=.01)
-            vars.update(
-                dismod_mr.model.likelihood.normal(
-                    name, vars['pi'], vars['sigma'], data['value'], data['standard_error'])
-            )
+            vars.update(dismod_mr.model.likelihood.normal(
+                name, vars['pi'], vars['sigma'], data['value'], data['standard_error']))
+
         elif rate_type == 'binom':
-            missing_ess = np.isnan(data['effective_sample_size']) | (
-                data['effective_sample_size'] < 0)
-            if sum(missing_ess) > 0:
+            missing_ess = data[(data['effective_sample_size'].isnull() == True)
+                               | (data['effective_sample_size'] < 0)].index
+            if len(missing_ess) > 0:
                 print('WARNING: %d rows of %s data has invalid quantification of uncertainty.' %
-                      (sum(missing_ess), name))
-                data['effective_sample_size'][missing_ess] = 0.0
+                      (len(missing_ess), name))
+                data.loc[missing, 'effective_sample_size'] = 0.0
             vars += dismod_mr.model.likelihood.binom(name,
                                                      vars['pi'], data['value'], data['effective_sample_size'])
+
         elif rate_type == 'beta_binom':
             vars += dismod_mr.model.likelihood.beta_binom(
                 name, vars['pi'], data['value'], data['effective_sample_size'])
+
         elif rate_type == 'beta_binom_2':
             vars += dismod_mr.model.likelihood.beta_binom_2(
                 name, vars['pi'], data['value'], data['effective_sample_size'])
+
         elif rate_type == 'poisson':
-            missing_ess = np.isnan(data['effective_sample_size']) | (
-                data['effective_sample_size'] < 0)
-            if sum(missing_ess) > 0:
+            missing_ess = data[(data['effective_sample_size'].isnull() == True)
+                               | (data['effective_sample_size'] < 0)].index
+            if len(missing_ess) > 0:
                 print('WARNING: %d rows of %s data has invalid quantification of uncertainty.' %
-                      (sum(missing_ess), name))
+                      (len(missing_ess), name))
                 data['effective_sample_size'][missing_ess] = 0.0
 
             vars += dismod_mr.model.likelihood.poisson(name,
                                                        vars['pi'], data['value'], data['effective_sample_size'])
+
         elif rate_type == 'offset_log_normal':
             vars['sigma'] = mc.Uniform('sigma_%s' % name, lower=.0001, upper=10., value=.01)
             vars += dismod_mr.model.likelihood.offset_log_normal(
                 name, vars['pi'], vars['sigma'], data['value'], data['standard_error'])
+
         else:
             raise Exception('rate_model "%s" not implemented' % rate_type)
+
     else:
         if include_covariates:
-            vars.update(
-                dismod_mr.model.covariates.mean_covariate_model(
-                    name, [], data, parameters, model, reference_area, reference_sex, reference_year, zero_re=zero_re)
-            )
+            vars.update(dismod_mr.model.covariates.mean_covariate_model(
+                name, [], data, parameters, model, reference_area, reference_sex, reference_year, zero_re=zero_re))
+
     if include_covariates:
         vars.update(dismod_mr.model.priors.covariate_level_constraints(name, model, vars, ages))
 
@@ -269,43 +266,39 @@ def age_specific_rate(model, data_type, reference_area='all', reference_sex='tot
 
         if include_covariates:
 
-            vars['lb'].update(
-                dismod_mr.model.covariates.mean_covariate_model(
-                    'lb_%s' % name, vars['lb']['mu_interval'], lb_data, parameters, model, reference_area, reference_sex, reference_year, zero_re=zero_re)
-            )
+            vars['lb'].update(dismod_mr.model.covariates.mean_covariate_model('lb_%s' % name, vars['lb']['mu_interval'],
+                                                                              lb_data, parameters, model, reference_area, reference_sex, reference_year, zero_re=zero_re))
         else:
             vars['lb'].update({'pi': vars['lb']['mu_interval']})
 
-        vars['lb'].update(
-            dismod_mr.model.covariates.dispersion_covariate_model(
-                'lb_%s' % name, lb_data, 1e12, 1e13)  # treat like poisson
-        )
+        vars['lb'].update(dismod_mr.model.covariates.dispersion_covariate_model(
+            'lb_%s' % name, lb_data, 1e12, 1e13))  # treat like poisson
 
         # ensure that all data has uncertainty quantified appropriately
         # first replace all missing se from ci
-        missing_se = np.isnan(lb_data['standard_error']) | (lb_data['standard_error'] <= 0)
-        lb_data.loc[lb_data[missing_se].index, 'standard_error'] = (
-            lb_data['upper_ci'][missing_se] - lb_data['lower_ci'][missing_se]) / (2*1.96)
+        missing_se = lb_data[(lb_data['standard_error'].isnull() == True)
+                             | (lb_data['standard_error'] <= 0)].index
+        lb_data.loc[missing_se, 'standard_error'] = (
+            lb_data.loc[missing_se, 'upper_ci'] - lb_data.loc[missing_se, 'lower_ci']) / (2*1.96)
 
         # then replace all missing ess with se
-        missing_ess = np.isnan(lb_data['effective_sample_size'])
-        lb_data.loc[lb_data[missing_ess].index, 'effective_sample_size'] = lb_data['value'][missing_ess] * \
-            (1-lb_data['value'][missing_ess])/lb_data['standard_error'][missing_ess]**2
+        missing_ess = lb_data[lb_data['effective_sample_size'].isnull() == True].index
+        lb_data.loc[missing_ess, 'effective_sample_size'] = lb_data.loc[missing_ess, 'value'] * \
+            (1 - lb_data.loc[missing_ess, 'value']) / lb_data.loc[missing_ess, 'standard_error']**2
 
         # warn and drop lb_data that doesn't have effective sample size quantified
-        missing_ess = np.isnan(lb_data['effective_sample_size']) | (
-            lb_data['effective_sample_size'] <= 0)
-        if sum(missing_ess) > 0:
+        missing_ess = lb_data[(lb_data['effective_sample_size'].isnull() == True)
+                              | (lb_data['effective_sample_size'] <= 0)].index
+        if len(missing_ess) > 0:
             print('WARNING: %d rows of %s lower bound data has no quantification of uncertainty.' %
-                  (sum(missing_ess), name))
-            lb_data.loc[lb_data[missing_ess].index, 'effective_sample_size'] = 1.0
+                  (len(missing_ess), name))
+            lb_data.loc[missing_ess, 'effective_sample_size'] = 1.0
 
-        vars['lb'].update(
-            dismod_mr.model.likelihood.neg_binom_lower_bound(
-                'lb_%s' % name, vars['lb']['pi'], vars['lb']['delta'], lb_data['value'], lb_data['effective_sample_size'])
-        )
+        vars['lb'].update(dismod_mr.model.likelihood.neg_binom_lower_bound(
+            'lb_%s' % name, vars['lb']['pi'], vars['lb']['delta'], lb_data['value'], lb_data['effective_sample_size']))
 
     result[data_type] = vars
+
     return result
 
 
@@ -415,10 +408,7 @@ def consistent(model, reference_area='all', reference_sex='total', reference_yea
     fun = dismod_mr.model.ode.ode_function(num_step, ages, m_all)
 
     @mc.deterministic
-    def mu_age_p(logit_C0=logit_C0,
-                 i=rate['i']['mu_age'],
-                 r=rate['r']['mu_age'],
-                 f=rate['f']['mu_age']):
+    def mu_age_p(logit_C0=logit_C0, i=rate['i']['mu_age'], r=rate['r']['mu_age'], f=rate['f']['mu_age']):
 
         # for acute conditions, it is silly to use ODE solver to
         # derive prevalence, and it can be approximated with a simple

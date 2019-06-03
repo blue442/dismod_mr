@@ -19,6 +19,7 @@
 
 """ Data Handling Class for DisMod-MR"""
 
+import pdb
 import pandas as pd
 import networkx as nx
 import pymc as mc
@@ -197,6 +198,7 @@ class ModelData:
           - DataFrame of selected data type.
 
         """
+
         if len(self.input_data) > 0:
             return self.input_data[self.input_data['data_type'] == data_type]
         else:
@@ -302,16 +304,22 @@ class ModelData:
                 area = self.input_data['area'][i]
                 return (area in self.hierarchy) or (area == 'all')
 
-            self.input_data = self.input_data.select(relevant_row)
+            self.input_data = self.input_data[self.input_data.area.isin(self.hierarchy.nodes())]
+
+            # self.input_data = self.input_data.select(relevant_row)
             self.nodes_to_fit = set(self.hierarchy.nodes()) & set(self.nodes_to_fit)
 
-        self.input_data = self.input_data.select(lambda i: self.input_data['sex'][i] in sexes)
+        self.input_data = self.input_data[self.input_data['sex'].isin(sexes)]
 
-        self.input_data = self.input_data.select(
-            lambda i: self.input_data['year_end'][i] >= start_year)
-        self.input_data = self.input_data.select(
-            lambda i: self.input_data['year_start'][i] <= end_year)
+        # self.input_data = self.input_data.select(lambda i: self.input_data['sex'][i] in sexes)
 
+        self.input_data = self.input_data[self.input_data['year_end'] >= start_year]
+
+        # self.input_data = self.input_data.select(lambda i: self.input_data['year_end'][i] >= start_year)
+
+        self.input_data = self.input_data[self.input_data['year_start'] <= end_year]
+
+        # self.input_data = self.input_data.select(lambda i: self.input_data['year_start'][i] <= end_year)
         print('kept %d rows of data' % len(self.input_data.index))
 
     def set_smoothness(self, rate_type, value):
@@ -606,7 +614,7 @@ class ModelData:
         #    #d.input_data.dtypes[field] = float  # TODO: figure out classy way like this, that works
         #    d.input_data[field] = pl.array(d.input_data[field], dtype=float)
 
-        d.output_template = pd.DataFrame.from_csv(path + '/output_template.csv')
+        d.output_template = pd.read_csv(path + '/output_template.csv')
 
         d.parameters = json.load(open(path + '/parameters.json'))
 

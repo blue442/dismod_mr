@@ -1,0 +1,44 @@
+Replication code for regional estimates of HCV Prevalence
+---------------------------------------------------------
+
+Author: Abraham D Flaxman
+
+Date: April 17, 2013
+
+Purpose: Archive research data and methods from the paper: Mohd
+Hanafiah K, Groeger J, Flaxman AD, Wiersma ST. Global epidemiology of
+hepatitis C virus infection: New estimates of age-specific antibody to
+HCV seroprevalence. Hepatology. 2013 Apr;57(4):1333-42. doi:
+10.1002/hep.26141. Epub 2013 Feb 4.
+http://www.ncbi.nlm.nih.gov/pubmed/23172780
+
+Notes
+-----
+
+This code is being released with very limited instructions, and may be
+of limited usefulness.  Nonetheless, I am putting it out into the
+world.  As Nick Barnes argued in Nature, publish your computer code:
+it is good enough.  http://www.nature.com/news/2010/101013/full/467753a.html
+
+
+Setup
+-----
+
+Running the replication code requires IPython, and is best
+accomplished using the IPython notebook.  It also requires a
+functioning installation of the DisMod-MR python code, which in turn
+relies on PyMC and a number of additional python packages.
+
+This could all be streamlined.  Patches welcome.
+
+1. Install Python and PyMC.  Instructions:
+    http://healthyalgorithms.com/about/pythonpymc-setup/
+
+2. Download and unpack the DisMod-MR code:
+    https://github.com/aflaxman/gbd/archive/master.zip
+
+3. Launch the IPython notebook with pylab inline:
+    ipython notebook --pylab inline
+
+4. View, modify, and/or run the replication example notebook in your
+web browser.
