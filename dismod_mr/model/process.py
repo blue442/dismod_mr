@@ -372,6 +372,8 @@ def consistent(model, reference_area='all', reference_sex='total', reference_yea
         for i, k in enumerate(rate[t]['knots']):
             rate[t]['gamma'][int(i)].value = np.log(initial[int(k - rate[t]['ages'][0])]+1.e-9)
 
+    pdb.set_trace()
+
     # TODO: re-engineer this m_all interpolation section
     df = model.get_data('m_all')
     if len(df.index) == 0:
@@ -399,13 +401,17 @@ def consistent(model, reference_area='all', reference_sex='total', reference_yea
 
     logit_C0 = mc.Uniform('logit_C0', -15, 15, value=-10.)
 
+    pdb.set_trace()
+
     # use Runge-Kutta 4 ODE solver
     import dismod_mr.model.ode
 
+
+    pdb.set_trace()
     N = len(m_all)
     num_step = 10  # double until it works
     ages = np.array(ages, dtype=float)
-    fun = dismod_mr.model.ode.ode_function(num_step, ages, m_all)
+    fun = dismod_mr.model.ode.ode_function(num_step=num_step, age_local=ages, all_local=m_all)
 
     @mc.deterministic
     def mu_age_p(logit_C0=logit_C0, i=rate['i']['mu_age'], r=rate['r']['mu_age'], f=rate['f']['mu_age']):

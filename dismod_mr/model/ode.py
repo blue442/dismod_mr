@@ -139,8 +139,6 @@ def runge_kutta_4(f, ti, yi, dt):
     yf = yi + (1./6.) * (k1 + 2.*k2 + 2.*k3 + k4)
     return yf
 
-#
-
 
 def ode_fun(a, susceptible_condition):
     global age, incidence, remission, excess, all_cause

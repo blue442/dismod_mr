@@ -39,6 +39,7 @@
 
 # <codecell>
 
+import numpy as np
 import dismod_mr
 import pymc as mc
 import pandas as pd
@@ -146,6 +147,8 @@ plt.figure(figsize=(10, 4))
 
 dismod_mr.plot.data_bars(model.get_data('p'), color='grey', label='Simulated PD Data')
 
+
+# APC: predict_for does not work at all... errors out because there is no trace method for 'vars'
 pred = dismod_mr.model.predict_for(model=model, parameters=model.parameters['p'], root_area='all', root_sex='female', root_year=2005,
                                    area='europe_western', sex='female', year=2005, population_weighted=1., vars=model.vars['p'], lower=0., upper=1.)    # TODO: simplify this method!
 
@@ -165,16 +168,16 @@ pred = dismod_mr.model.predict_for(model=model, parameters=model.parameters['p']
 
 hpd = mc.utils.hpd(pred, .05)
 
-plot(arange(101), pred.mean(axis=0), 'k-', linewidth=2, label='Posterior Mean')
-plot(arange(101), hpd[:, 0], 'k--', linewidth=1, label='95% HPD interval')
-plot(arange(101), hpd[:, 1], 'k--', linewidth=1)
+plt.plot(arange(101), pred.mean(axis=0), 'k-', linewidth=2, label='Posterior Mean')
+plt.plot(arange(101), hpd[:, 0], 'k--', linewidth=1, label='95% HPD interval')
+plt.plot(arange(101), hpd[:, 1], 'k--', linewidth=1)
 
-xlabel('Age (years)')
-ylabel('Prevalence (per 1)')
-grid()
-legend(loc='upper left')
+plt.xlabel('Age (years)')
+plt.ylabel('Prevalence (per 1)')
+plt.grid()
+plt.legend(loc='upper left')
 
-axis(ymin=-.001, xmin=-5, xmax=105)
+plt.axis(ymin=-.001, xmin=-5, xmax=105)
 
 # <codecell>
 
@@ -220,6 +223,7 @@ model.parameters['p']['parameter_age_mesh']
 
 df = pd.DataFrame(index=[alpha_i.__name__ for alpha_i in model.vars['p']['alpha']],
                   columns=['mean', 'lb', 'ub'])
+
 for alpha_i in model.vars['p']['alpha']:
     stats = alpha_i.stats()
     df.ix[alpha_i.__name__] = (stats['mean'], stats['95% HPD interval']
@@ -250,28 +254,29 @@ model.get_data('p').sort('age_start').filter(['age_start', 'age_end', 'area', 'v
 # <codecell>
 
 pred = model.vars['p']['p_pred'].trace()
-obs = array(model.vars['p']['p_obs'].value)
-ess = array(model.vars['p']['p_obs'].parents['n'])
+obs = np.array(model.vars['p']['p_obs'].value)
+ess = np.array(model.vars['p']['p_obs'].parents['n'])
 
 # <codecell>
 
-figure(figsize=(10, 4))
+plt.figure(figsize=(10, 4))
 
 sorted_indices = obs.argsort().argsort()
 jitter = mc.rnormal(0, .1**-2, len(pred))
 
 for i, s_i in enumerate(sorted_indices):
-    plot(s_i+jitter, pred[:, i], 'ko', mew=0, alpha=.25, zorder=-99)
+    plt.plot(s_i+jitter, pred[:, i], 'ko', mew=0, alpha=.25, zorder=-99)
 
-errorbar(sorted_indices, obs, yerr=1.96*sqrt(obs*(1-obs)/ess), fmt='ks', mew=1, mec='white', ms=5)
+plt.errorbar(sorted_indices, obs, yerr=1.96*sqrt(obs*(1-obs)/ess),
+             fmt='ks', mew=1, mec='white', ms=5)
 
-xticks([])
-xlabel('Measurement')
-ylabel('Prevalence (%)\n', ha='center')
-yticks([0, .02, .04, .06, .08], [0, 2, 4, 6, 8])
-axis([25.5, 55.5, -.01, .1])
-grid()
-title('Posterior Predictive distribution')
+plt.xticks([])
+plt.xlabel('Measurement')
+plt.ylabel('Prevalence (%)\n', ha='center')
+plt.yticks([0, .02, .04, .06, .08], [0, 2, 4, 6, 8])
+plt.axis([25.5, 55.5, -.01, .1])
+plt.grid()
+plt.title('Posterior Predictive distribution')
 
 # <markdowncell>
 
@@ -303,7 +308,8 @@ title('Posterior Predictive distribution')
 
 # <codecell>
 
-model = dismod_mr.data.load('pd_sim_data')
+
+model = dismod_mr.data.load('./examples/pd_sim_data')
 
 # <codecell>
 
@@ -316,7 +322,7 @@ crosswalks
 
 # <codecell>
 
-round_(groups['value'].describe(), 3).unstack()['mean']
+np.round(groups['value'].describe(), 3).unstack()['mean']
 
 # <markdowncell>
 
@@ -340,24 +346,24 @@ round_(groups['value'].describe(), 3).unstack()['mean']
 
 # <codecell>
 
-figure(figsize=(10, 6))
+plt.figure(figsize=(10, 6))
 
-subplot(2, 2, 1)
+plt.subplot(2, 2, 1)
 dismod_mr.plot.data_bars(model.get_data('p'))
-xlabel('Age (years)')
-ylabel('Prevalence')
-subplot(2, 2, 2)
+plt.xlabel('Age (years)')
+plt.ylabel('Prevalence')
+plt.subplot(2, 2, 2)
 dismod_mr.plot.data_bars(model.get_data('i'))
-xlabel('Age (years)')
-ylabel('Incidence')
-subplot(2, 2, 3)
+plt.xlabel('Age (years)')
+plt.ylabel('Incidence')
+plt.subplot(2, 2, 3)
 dismod_mr.plot.data_bars(model.get_data('csmr'))
-xlabel('Age (years)')
-ylabel('Cause-specific mortality')
-subplot(2, 2, 4)
+plt.xlabel('Age (years)')
+plt.ylabel('Cause-specific mortality')
+plt.subplot(2, 2, 4)
 dismod_mr.plot.data_bars(model.get_data('smr'))
-xlabel('Age (years)')
-ylabel('Standardized \nmortality ratio')
+plt.xlabel('Age (years)')
+plt.ylabel('Standardized \nmortality ratio')
 
 # <codecell>
 
@@ -370,24 +376,24 @@ model.vars += dismod_mr.model.consistent(model)
 
 # <codecell>
 
-figure(figsize=(10, 6))
+plt.figure(figsize=(10, 6))
 
-subplot(2, 2, 1)
+plt.subplot(2, 2, 1)
 dismod_mr.plot.data_bars(model.get_data('p'))
-xlabel('Age (years)')
-ylabel('Prevalence')
-subplot(2, 2, 2)
+plt.xlabel('Age (years)')
+plt.ylabel('Prevalence')
+plt.subplot(2, 2, 2)
 dismod_mr.plot.data_bars(model.get_data('i'))
-xlabel('Age (years)')
-ylabel('Incidence')
+plt.xlabel('Age (years)')
+plt.ylabel('Incidence')
 subplot(2, 2, 3)
 dismod_mr.plot.data_bars(model.get_data('csmr'))
-xlabel('Age (years)')
-ylabel('Cause-specific mortality')
+plt.xlabel('Age (years)')
+plt.ylabel('Cause-specific mortality')
 subplot(2, 2, 4)
 dismod_mr.plot.data_bars(model.get_data('smr'))
-xlabel('Age (years)')
-ylabel('Standardized \nmortality ratio')
+plt.xlabel('Age (years)')
+plt.ylabel('Standardized \nmortality ratio')
 param_list = [dict(type='p', title='(a)', ylabel='Prevalence (%)', yticks=([0, .01, .02], [0, 1, 2]), axis=[30, 101, -0.001, .025]),
               dict(type='i', title='(b)', ylabel='Incidence \n(per 1000 PY)', yticks=(
                   [0, .001, .002, .003, .004], [0, 1, 2, 3, 4]), axis=[30, 104, -.0003, .0055]),
@@ -412,17 +418,17 @@ for i, params in enumerate(param_list):
                                                  'all', 'female', 2005,
                                                  'europe_western', 'female', 2005, 1., model.vars[params['type']], 0., 1.).T
 
-    plot(arange(101), model.pred.mean(axis=1), 'k-', linewidth=2, label='Posterior Mean')
+    plt.plot(arange(101), model.pred.mean(axis=1), 'k-', linewidth=2, label='Posterior Mean')
     hpd = mc.utils.hpd(model.pred.T, .05)
-    plot(arange(101), hpd[:, 0], 'k-', linewidth=1, label='95% HPD interval')
-    plot(arange(101), hpd[:, 1], 'k-', linewidth=1)
+    plt.plot(arange(101), hpd[:, 0], 'k-', linewidth=1, label='95% HPD interval')
+    plt.plot(arange(101), hpd[:, 1], 'k-', linewidth=1)
 
-    xlabel('Age (years)')
-    ylabel(params['ylabel']+'\n\n', ha='center')
-    axis(params.get('axis', [-5, 105, -.005, .06]))
-    yticks(*params.get('yticks', ([0, .025, .05], [0, 2.5, 5])))
-    title(params['title'])
-    grid()
+    plt.xlabel('Age (years)')
+    plt.ylabel(params['ylabel']+'\n\n', ha='center')
+    plt.axis(params.get('axis', [-5, 105, -.005, .06]))
+    plt.yticks(*params.get('yticks', ([0, .025, .05], [0, 2.5, 5])))
+    plt.title(params['title'])
+    plt.grid()
 
 subplots_adjust(hspace=.35, wspace=.35, top=.97)
 

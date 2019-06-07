@@ -76,9 +76,9 @@ def mean_covariate_model(name, mu, input_data, parameters, model, root_area, roo
                 'WARNING: "%s" not in model hierarchy, skipping random effects for this observation' % row['area'])
             continue
 
-        for level, node in enumerate(nx.shortest_path(model.hierarchy, 'all', input_data.ix[i, 'area'])):
+        for level, node in enumerate(nx.shortest_path(model.hierarchy, 'all', input_data.loc[i, 'area'])):
             model.hierarchy.node[node]['level'] = level
-            U.ix[i, node] = 1.
+            U.loc[i, node] = 1.
 
     for n2 in model.hierarchy.nodes():
         for level, node in enumerate(nx.shortest_path(model.hierarchy, 'all', n2)):
@@ -220,6 +220,7 @@ def mean_covariate_model(name, mu, input_data, parameters, model, root_area, roo
             output_template = model.output_template.groupby(['area', 'sex', 'year']).first()
 
         covs = output_template.filter(list(X.columns) + ['pop'])
+
         if len(covs.columns) > 1:
             leaves = [n for n in nx.traversal.bfs_tree(
                 model.hierarchy, root_area) if model.hierarchy.successors(n) == []]
@@ -229,27 +230,30 @@ def mean_covariate_model(name, mu, input_data, parameters, model, root_area, roo
 
             if root_sex == 'total' and root_year == 'all':  # special case for all years and sexes
                 # TODO: change to .reset_index(), but that doesn't work with old pandas
-                covs = covs.reset_index().drop(['year', 'sex'], axis=1).groupby('area').mean()
+                pdb.set_trace()
+                covs.reset_index(drop=False, inplace=True).drop(columns=['year', 'sex'], inplace=True).groupby('area').mean()
+
+                # APC: .ix method is deprecated and should be removed, but there is a bug here, index does not exist
                 leaf_covs = covs.ix[leaves]
             elif root_sex == 'total':
                 raise Exception('root_sex == total, root_year != all is Not Yet Implemented')
             elif root_year == 'all':
                 raise Exception('root_year == all, root_sex != total is Not Yet Implemented')
             else:
+
+                # APC: .ix method is deprecated and should be removed
                 leaf_covs = covs.ix[[(l, root_sex, root_year) for l in leaves]]
 
             for cov in covs:
                 if cov != 'pop':
-                    X_shift[cov] = (leaf_covs[cov] * leaf_covs['pop']
-                                    ).sum() / leaf_covs['pop'].sum()
+                    X_shift[cov] = (leaf_covs[cov] * leaf_covs['pop']).sum() / leaf_covs['pop'].sum()
 
         if 'x_sex' in X.columns:
             X_shift['x_sex'] = sex_value[root_sex]
 
         X = X - X_shift
 
-        assert not np.any(np.isnan(np.array(X, dtype=float))
-                          ), 'matrix should have no missing values'
+        assert not np.any(np.isnan(np.array(X, dtype=float))), 'matrix should have no missing values'
 
         beta = []
         for i, effect in enumerate(X.columns):
@@ -344,7 +348,6 @@ def predict_for(model, parameters,
     output_template = model.output_template.copy()
 
     # find number of samples from posterior
-    pdb.set_trace()
     len_trace = len(vars['mu_age'].trace())
 
     # compile array of draws from posterior distribution of alpha (random effect covariate values)
@@ -463,7 +466,7 @@ def predict_for(model, parameters,
     for l in leaves:
         log_shift_l = np.zeros(len_trace)
         if len(U_l.columns) > 0:
-            U_l.ix[0, :] = 0.
+            U_l.loc[0, :] = 0.
 
         root_to_leaf = nx.shortest_path(area_hierarchy, root_area, l)
         for node in root_to_leaf[1:]:
@@ -500,7 +503,7 @@ def predict_for(model, parameters,
                     alpha_trace = np.atleast_2d(alpha_node).T
 
             # TODO: implement a more robust way to align alpha_trace and U_l
-            U_l.ix[0, node] = 1.
+            U_l.loc[0, node] = 1.
 
         # 'shift' the random effects matrix to have the intended
         # level of the hierarchy as the reference value
@@ -513,6 +516,7 @@ def predict_for(model, parameters,
 
         # make X_l
         if len(beta_trace) > 0:
+            pdb.set_trace()
             X_l = covs.ix[l, sex, year]
             log_shift_l += np.dot(beta_trace, X_l.T).flatten()
 
