@@ -1,16 +1,7 @@
 import numpy as np
 from scipy import integrate
+from scipy.interpolate import interp1d
 import pdb
-
-
-def runge_kutta_4(f, ti, yi, dt):
-    pdb.set_trace()
-    k1 = dt * f(ti, yi)
-    k2 = dt * f(ti + .5*dt, yi + .5*k1)
-    k3 = dt * f(ti + .5*dt, yi + .5*k2)
-    k4 = dt * f(ti + dt, yi + k3)
-    yf = yi + (1./6.) * (k1 + 2.*k2 + 2.*k3 + k4)
-    return yf
 
 
 m_all = np.array([0.04450774, 0.03636661, 0.02008435, 0.0038021, 0.00313581,
@@ -60,80 +51,34 @@ condition = np.zeros(N)
 incidence = np.zeros(N)
 remission = np.zeros(N)
 excess = np.zeros(N)
-s0 = 0.
-c0 = 0.
+s0 = 0.0000001
+c0 = 0.0000001
 
 
-def ode_fun(w, a, p):
-    y1, y2 = w
+def model(y, a, p):
+    s, c = y
     i, m, e, r = p
+    ds_da = - (i + (m - e * s / (s + c))) * s + r * c
+    dc_da = i * s - (r + (m - e * s / (s + c)) + e) * c
+    return [ds_da, dc_da]
 
-    dyda = [-(i + (m - e*y1) / (y1+y2)) * y1 + r*y2,
-            i * y1 - (r + (m - e*y1) / (y1+y2) + e) * y2]
 
-    return dyda
-
+def odefun(a, y):
     global age, incidence, remission, excess, all_cause
 
-    i = incidence[idx]
-    r = remission[idx]
-    e = excess[idx]
-    m = all_cause[idx]
+    i = interp1d(age, incidence, kind='linear')
+    r = interp1d(age, remission, kind='linear')
+    e = interp1d(age, excess, kind='linear')
+    m = interp1d(age, all_cause, kind='linear')
+
+    p = (i(a), m(a), e(a), r(a))
+
+    return model(y, a, p)
 
 
-def ode_fun(susceptible_condition, a):
-    global age, incidence, remission, excess, all_cause
-    s = susceptible_condition[0]
-    c = susceptible_condition[1]
+res = integrate.solve_ivp(fun=odefun, t_span=(
+    age[0], age[-1]), y0=[s0, c0], method='RK45', t_eval=age)
 
-    # APC: added this in order to find the index (which needed to be an int instead of a float)
-    idx = int(np.argwhere(age == a))
-
-    i = incidence[idx]
-    r = remission[idx]
-    e = excess[idx]
-    m = all_cause[idx]
-
-    other = m - e * s / (s + c)
-    ds_da = - (i + other) * s + r * c
-    dc_da = +           i * s - (r + other + e) * c
-    return np.array([ds_da, dc_da])
-
-
-def ode_integrate(N, num_step, s0, c0):
-    global age, incidence, remission, excess, all_cause
-    global susceptible, condition
-    susceptible[0] = s0
-    condition[0] = c0
-    sc = np.array([s0, c0])
-    N = len(all_cause)
-
-    for j in range(N-1):
-        # a_step = (age[j+1] - age[j]) / num_step
-        # a_tmp = age[j]
-
-        sc = integrate.odeint(func=ode_fun,
-                              t=np.linspace(start=age[j], stop=age[j+1], num=num_step),
-                              y0=sc, tfirst=True)
-
-        # for step in range(num_step):
-        #     pdb.set_trace()
-        #     sc = runge_kutta_4(ode_fun, a_tmp, sc, a_step)
-        #     a_tmp = a_tmp + a_step
-        susceptible[j+1] = sc[0]
-        condition[j+1] = sc[1]
-
-
-# x = np.hstack((incidence, remission, excess, s0, c0))
-# # x = pycppad.independent(x)
-# incidence = x[(0*N):(1*N)]
-# remission = x[(1*N):(2*N)]
-# excess = x[(2*N):(3*N)]
-# s0 = x[3*N]
-# c0 = x[3*N+1]
-
-
-aaa = ode_integrate(N, num_step, s0, c0)
-# y = np.hstack((susceptible, condition))
-# fun = pycppad.adfun(x, y)
-# fun = dismod_mr.model.ode.ode_function(num_step, ages, m_all)
+print(res.message)
+s = res.y[0, :]
+c = res.y[1, :]

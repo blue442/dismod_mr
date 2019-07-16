@@ -120,6 +120,9 @@
 # $code dismod_ode$$.
 #
 # $end
+from scipy import integrate
+from scipy.interpolate import interp1d
+import pdb
 import numpy
 try:
     import pycppad
@@ -128,9 +131,70 @@ except ImportError:
 
 N = 0
 
-# copied from http://www.seanet.com/~bradbell/pycppad/runge_kutta_4.xml
+
+def ode_function(num_step, age_local, all_local, scipy=False):
+    global age, incidence, remission, excess, all_cause
+    global susceptible, condition
+
+    if scipy == False:
+        N = len(age_local)
+        age = age_local
+        all_cause = all_local
+        susceptible = pycppad.ad(numpy.zeros(N))
+        condition = pycppad.ad(numpy.zeros(N))
+        incidence = .00 * numpy.ones(N)
+        remission = .00 * numpy.ones(N)
+        excess = .00 * numpy.ones(N)
+        s0 = 0.
+        c0 = 0.
+        x = numpy.hstack((incidence, remission, excess, s0, c0))
+        x = pycppad.independent(x)
+        incidence = x[(0*N):(1*N)]
+        remission = x[(1*N):(2*N)]
+        excess = x[(2*N):(3*N)]
+        s0 = x[3*N]
+        c0 = x[3*N+1]
+        ode_integrate(N, num_step, s0, c0)
+        y = numpy.hstack((susceptible, condition))
+        fun = pycppad.adfun(x, y)
+
+        return fun
+
+    if scipy == True:
+        res = integrate.solve_ivp(fun=odefun, t_span=(
+            age[0], age[-1]), y0=[s0, c0], method='RK45', t_eval=age)
+
+        print(res.message)
+        s = res.y[0, :]
+        c = res.y[1, :]
+
+        return s, c
+
+# scipy methods
 
 
+def model(y, a, p):
+    s, c = y
+    i, m, e, r = p
+    ds_da = - (i + (m - e * s / (s + c))) * s + r * c
+    dc_da = i * s - (r + (m - e * s / (s + c)) + e) * c
+    return [ds_da, dc_da]
+
+
+def odefun(a, y):
+    global age, incidence, remission, excess, all_cause
+
+    i = interp1d(age, incidence, kind='linear')
+    r = interp1d(age, remission, kind='linear')
+    e = interp1d(age, excess, kind='linear')
+    m = interp1d(age, all_cause, kind='linear')
+
+    p = (i(a), m(a), e(a), r(a))
+
+    return model(y, a, p)
+
+
+# original methods
 def runge_kutta_4(f, ti, yi, dt):
     k1 = dt * f(ti, yi)
     k2 = dt * f(ti + .5*dt, yi + .5*k1)
@@ -171,27 +235,27 @@ def ode_integrate(N, num_step, s0, c0):
         condition[j+1] = sc[1]
 
 
-def ode_function(num_step, age_local, all_local):
-    global age, incidence, remission, excess, all_cause
-    global susceptible, condition
-    N = len(age_local)
-    age = age_local
-    all_cause = all_local
-    susceptible = pycppad.ad(numpy.zeros(N))
-    condition = pycppad.ad(numpy.zeros(N))
-    incidence = .00 * numpy.ones(N)
-    remission = .00 * numpy.ones(N)
-    excess = .00 * numpy.ones(N)
-    s0 = 0.
-    c0 = 0.
-    x = numpy.hstack((incidence, remission, excess, s0, c0))
-    x = pycppad.independent(x)
-    incidence = x[(0*N):(1*N)]
-    remission = x[(1*N):(2*N)]
-    excess = x[(2*N):(3*N)]
-    s0 = x[3*N]
-    c0 = x[3*N+1]
-    ode_integrate(N, num_step, s0, c0)
-    y = numpy.hstack((susceptible, condition))
-    fun = pycppad.adfun(x, y)
-    return fun
+# def ode_function(num_step, age_local, all_local):
+#     global age, incidence, remission, excess, all_cause
+#     global susceptible, condition
+#     N = len(age_local)
+#     age = age_local
+#     all_cause = all_local
+#     susceptible = pycppad.ad(numpy.zeros(N))
+#     condition = pycppad.ad(numpy.zeros(N))
+#     incidence = .00 * numpy.ones(N)
+#     remission = .00 * numpy.ones(N)
+#     excess = .00 * numpy.ones(N)
+#     s0 = 0.
+#     c0 = 0.
+#     x = numpy.hstack((incidence, remission, excess, s0, c0))
+#     x = pycppad.independent(x)
+#     incidence = x[(0*N):(1*N)]
+#     remission = x[(1*N):(2*N)]
+#     excess = x[(2*N):(3*N)]
+#     s0 = x[3*N]
+#     c0 = x[3*N+1]
+#     ode_integrate(N, num_step, s0, c0)
+#     y = numpy.hstack((susceptible, condition))
+#     fun = pycppad.adfun(x, y)
+#     return fun

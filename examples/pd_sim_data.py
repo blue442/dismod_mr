@@ -308,7 +308,6 @@ plt.title('Posterior Predictive distribution')
 
 # <codecell>
 
-
 model = dismod_mr.data.load('./examples/pd_sim_data')
 
 # <codecell>

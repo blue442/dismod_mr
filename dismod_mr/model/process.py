@@ -406,12 +406,12 @@ def consistent(model, reference_area='all', reference_sex='total', reference_yea
     # use Runge-Kutta 4 ODE solver
     import dismod_mr.model.ode
 
-
     pdb.set_trace()
     N = len(m_all)
     num_step = 10  # double until it works
     ages = np.array(ages, dtype=float)
-    fun = dismod_mr.model.ode.ode_function(num_step=num_step, age_local=ages, all_local=m_all)
+    fun = dismod_mr.model.ode.ode_function(
+        num_step=num_step, age_local=ages, all_local=m_all, scipy=False)
 
     @mc.deterministic
     def mu_age_p(logit_C0=logit_C0, i=rate['i']['mu_age'], r=rate['r']['mu_age'], f=rate['f']['mu_age']):
